@@ -1,0 +1,1 @@
+<?php header('Location: ' . URL_BASE . 'admin/metodos_pago'); exit; ?>

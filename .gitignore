@@ -1,0 +1,45 @@
+# =============================================
+#   .gitignore — Tienda WordCell PHP MVC
+# =============================================
+
+# ── Configuración con credenciales (NUNCA subir) ──
+config/config.php
+
+# ── Logs del sistema ──────────────────────────────
+logs/
+*.log
+
+# ── Archivos de base de datos locales (opcionales) ─
+# Descomenta si no quieres subir el SQL:
+# *.sql
+# BBD.sql
+# database.sql
+
+# ── Archivos de debug y temporales ───────────────
+*.tmp
+*.temp
+wa_debug*.txt
+check_methods*.php
+methods_dump*.json
+
+# ── Uploads de usuarios (imágenes/videos) ─────────
+public/uploads/
+
+# ── Dependencias de PHP (si usas Composer) ────────
+vendor/
+
+# ── IDEs y editores ───────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Variables de entorno ──────────────────────────── 
+.env
+.env.local
+.env.production
