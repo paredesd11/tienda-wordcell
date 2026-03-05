@@ -16,8 +16,8 @@ define('APP_NAME', 'WordCell');
 
 // Configuración SMTP para verificación por correo
 define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_USER', 'tu_correo@gmail.com');
-define('SMTP_PASS', 'tu_contraseña_de_aplicacion');
+define('SMTP_USER', 'paredesd1104@gmail.com');
+define('SMTP_PASS', 'nnlr dorv icad udbw');
 define('SMTP_PORT', 587);
 
 // Configuración de Zona Horaria
