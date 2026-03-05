@@ -40,10 +40,10 @@ class UserController extends Controller {
 
     public function actualizar() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $nombre = filter_input(INPUT_POST, 'nombre', FILTER_SANITIZE_STRING);
-            $apellido = filter_input(INPUT_POST, 'apellido', FILTER_SANITIZE_STRING);
-            $telefono = filter_input(INPUT_POST, 'telefono', FILTER_SANITIZE_STRING);
-            $direccion = filter_input(INPUT_POST, 'direccion', FILTER_SANITIZE_STRING);
+            $nombre    = trim(htmlspecialchars($_POST['nombre']    ?? '', ENT_QUOTES, 'UTF-8'));
+            $apellido  = trim(htmlspecialchars($_POST['apellido']  ?? '', ENT_QUOTES, 'UTF-8'));
+            $telefono  = trim(htmlspecialchars($_POST['telefono']  ?? '', ENT_QUOTES, 'UTF-8'));
+            $direccion = trim(htmlspecialchars($_POST['direccion'] ?? '', ENT_QUOTES, 'UTF-8'));
 
             if ($this->userModel->updateProfile($_SESSION['user_id'], $nombre, $apellido, $telefono, $direccion)) {
                 $_SESSION['user_nombre'] = $nombre;

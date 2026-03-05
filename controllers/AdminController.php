@@ -44,12 +44,15 @@ class AdminController extends Controller {
             return '';
         }
 
-        $targetDir = $_SERVER['DOCUMENT_ROOT'] . '/Tienda/public/' . $folder;
+        // Ruta dinámica: funciona en localhost /Tienda/ e InfinityFree /htdocs/
+        $publicPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR;
+        $targetDir  = $publicPath . str_replace('/', DIRECTORY_SEPARATOR, $folder);
+
         if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0777, true);
+            mkdir($targetDir, 0755, true);
         }
 
-        $allowedTypes = ['jpg', 'png', 'jpeg', 'gif', 'svg', 'webp', 'mp4', 'webm'];
+        $allowedTypes  = ['jpg', 'png', 'jpeg', 'gif', 'svg', 'webp', 'mp4', 'webm'];
         $uploadedPaths = [];
 
         // Check if multiple files were uploaded (array)
@@ -102,7 +105,7 @@ class AdminController extends Controller {
 
     public function productosCreate() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $nombre = filter_input(INPUT_POST, 'nombre', FILTER_SANITIZE_STRING);
+            $nombre   = trim(htmlspecialchars($_POST['nombre'] ?? '', ENT_QUOTES, 'UTF-8'));
             $precio = filter_input(INPUT_POST, 'precio', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
             $stock = filter_input(INPUT_POST, 'stock', FILTER_SANITIZE_NUMBER_INT);
             $cat_id = filter_input(INPUT_POST, 'categoria_id', FILTER_SANITIZE_NUMBER_INT);
