@@ -1,13 +1,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Evitar bucles infinitos: no reescribir si la petición ya va hacia /public/
+    RewriteCond %{REQUEST_URI} !/public/
+    RewriteCond %{REQUEST_URI} !/public$
     
-    # Previene loops infinitos y redirige TODO a public/
-    RewriteCond %{REQUEST_URI} !^/public/
+    # Redirigir silenciosamente todo el tráfico a la carpeta public/
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
-
-# Bloqueo básico de seguridad (compatible con Apache 2.2 en InfinityFree)
-<FilesMatch "\.(env|sql|log)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
