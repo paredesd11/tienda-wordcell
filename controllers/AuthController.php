@@ -59,6 +59,7 @@ class AuthController extends Controller {
         // PHP 8.1 compatible — sin FILTER_SANITIZE_STRING (deprecado)
         $nombre    = trim(htmlspecialchars($_POST['nombre']    ?? '', ENT_QUOTES, 'UTF-8'));
         $apellido  = trim(htmlspecialchars($_POST['apellido']  ?? '', ENT_QUOTES, 'UTF-8'));
+        $cedula    = trim(htmlspecialchars($_POST['cedula']    ?? '', ENT_QUOTES, 'UTF-8'));
         $correo    = filter_input(INPUT_POST, 'correo', FILTER_SANITIZE_EMAIL);
         $telefono  = trim(htmlspecialchars($_POST['telefono']  ?? '', ENT_QUOTES, 'UTF-8'));
         $direccion = trim(htmlspecialchars($_POST['direccion'] ?? '', ENT_QUOTES, 'UTF-8'));
@@ -80,7 +81,12 @@ class AuthController extends Controller {
             return;
         }
 
-        if ($this->userModel->register($nombre, $apellido, $correo, $password, $telefono, $direccion)) {
+        if (!empty($cedula) && $this->userModel->findByCedula($cedula)) {
+            $this->viewAuth('auth/login', ['error' => 'La Cédula/CI ya está registrada con otra cuenta.']);
+            return;
+        }
+
+        if ($this->userModel->register($nombre, $apellido, $correo, $password, $telefono, $direccion, $cedula)) {
             $user   = $this->userModel->findByEmail($correo);
             $codigo = sprintf("%06d", mt_rand(1, 999999));
             $this->userModel->updateVerificationCode($user['id'], $codigo);

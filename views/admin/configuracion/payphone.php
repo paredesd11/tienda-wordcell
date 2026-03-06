@@ -12,7 +12,7 @@
     </h2>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start;">
+<div class="payphone-grid">
 
     <!-- Panel principal -->
     <div class="admin-card" style="padding:2rem;">

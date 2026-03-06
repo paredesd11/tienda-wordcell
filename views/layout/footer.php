@@ -3,7 +3,7 @@
     <!-- ═══════════════════════════════════════════════════════════
          FLOATING MAP WIDGET — fixed bottom-right
     ═══════════════════════════════════════════════════════════ -->
-    <?php if (!empty($ubicaciones)): ?>
+    <?php if (isset($is_home) && $is_home && !empty($ubicaciones)): ?>
     <?php
         $ub = $ubicaciones[0];
         $mapsShareUrl = '#';

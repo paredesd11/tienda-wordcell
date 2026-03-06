@@ -1,20 +1,15 @@
-Options -Indexes
-AddDefaultCharset UTF-8
-
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /
-
-    # No tocar archivos/directorios reales
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-
-    # Todo pasa por public/
+    
+    # Enviar las peticiones de la raíz a la carpeta public
     RewriteRule ^$ public/ [L]
-    RewriteRule ^(.*)$ public/$1 [L]
+    
+    # Enviar todas las demás peticiones que no sean la carpeta public
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule (.*) public/$1 [L]
 </IfModule>
 
-# InfinityFree: seguridad archivos sensibles
+# Seguridad: ocultar archivos sensibles si alguien intenta acceder directamente
 <FilesMatch "(config\.php|\.env|\.sql|\.log)$">
     <IfModule mod_authz_core.c>
         Require all denied

@@ -44,9 +44,23 @@ class UserController extends Controller {
             $apellido  = trim(htmlspecialchars($_POST['apellido']  ?? '', ENT_QUOTES, 'UTF-8'));
             $telefono  = trim(htmlspecialchars($_POST['telefono']  ?? '', ENT_QUOTES, 'UTF-8'));
             $direccion = trim(htmlspecialchars($_POST['direccion'] ?? '', ENT_QUOTES, 'UTF-8'));
+            $cedula    = trim(htmlspecialchars($_POST['cedula']    ?? '', ENT_QUOTES, 'UTF-8'));
 
-            if ($this->userModel->updateProfile($_SESSION['user_id'], $nombre, $apellido, $telefono, $direccion)) {
+            // Verificar que la cédula no esté usada por otro usuario
+            if (!empty($cedula)) {
+                $existing = $this->userModel->findByCedula($cedula);
+                if ($existing && $existing['id'] != $_SESSION['user_id']) {
+                    $_SESSION['error_password'] = "La cédula ingresada ya está registrada en otra cuenta.";
+                    $this->redirect('user/panel');
+                    return;
+                }
+            }
+
+            if ($this->userModel->updateProfile($_SESSION['user_id'], $nombre, $apellido, $telefono, $direccion, $cedula)) {
                 $_SESSION['user_nombre'] = $nombre;
+                $_SESSION['success_password'] = "Perfil actualizado correctamente.";
+            } else {
+                $_SESSION['error_password'] = "Error al actualizar el perfil.";
             }
             $this->redirect('user/panel');
         }

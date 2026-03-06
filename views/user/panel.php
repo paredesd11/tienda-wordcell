@@ -28,6 +28,16 @@
                     <h3 style="margin: 0; font-size: 1.2rem;">Mi Perfil</h3>
                 </div>
                 <form action="<?php echo URL_BASE; ?>user/actualizar" method="POST">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.3rem; display: block;">Cédula / CI</label>
+                        <input type="text" name="cedula" class="form-control" value="<?php echo htmlspecialchars($user['cedula'] ?? ''); ?>" 
+                               <?php echo !empty($user['cedula']) ? 'readonly' : 'required'; ?> 
+                               placeholder="Ingresa tu número de cédula..."
+                               style="background: <?php echo !empty($user['cedula']) ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)'; ?>; 
+                                      border-color: <?php echo !empty($user['cedula']) ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'; ?>; 
+                                      color: <?php echo !empty($user['cedula']) ? '#64748b' : 'white'; ?>; 
+                                      <?php echo !empty($user['cedula']) ? 'cursor: not-allowed;' : ''; ?>">
+                    </div>
                     <div class="row" style="display:flex; gap:1rem; margin-bottom: 1rem;">
                         <div style="flex:1;">
                             <label class="form-label" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.3rem; display: block;">Nombres</label>

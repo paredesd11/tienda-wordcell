@@ -1,9 +1,11 @@
 <IfModule mod_rewrite.c>
     Options -Indexes
     RewriteEngine On
-    RewriteBase /public/
 
+    # Si el archivo o directorio existen físicamente, cargarlos (ej: imagenes, css)
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
+    
+    # Si no, redirigir todo a index.php para que el Router PHP lo maneje
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>

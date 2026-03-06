@@ -44,23 +44,31 @@ document.addEventListener('DOMContentLoaded', () => {
         'req-symbol': v => /[\W_]/.test(v),
     };
 
-    function validatePassword() {
+    function validateForm() {
         if (!regPassword || !btnCrear) return;
         const val = regPassword.value;
         const repeat = regPasswordRepeat ? regPasswordRepeat.value : '';
-        let allValid = true;
+        let passValid = true;
 
         Object.entries(rules).forEach(([id, test]) => {
             const el = document.getElementById(id);
             if (!el) return;
             const ok = test(val);
             el.classList.toggle('valid', ok);
-            if (!ok) allValid = false;
+            if (!ok) passValid = false;
         });
 
-        btnCrear.disabled = !(allValid && val === repeat && repeat.length > 0);
+        const reqInputs = document.querySelectorAll('#register-form input[required]');
+        let fieldsFilled = true;
+        reqInputs.forEach(i => {
+            if (i.value.trim() === '') fieldsFilled = false;
+        });
+
+        btnCrear.disabled = !(passValid && val === repeat && repeat.length > 0 && fieldsFilled);
     }
 
-    if (regPassword) regPassword.addEventListener('input', validatePassword);
-    if (regPasswordRepeat) regPasswordRepeat.addEventListener('input', validatePassword);
+    const allRegInputs = document.querySelectorAll('#register-form input[required]');
+    allRegInputs.forEach(inp => {
+        inp.addEventListener('input', validateForm);
+    });
 });

@@ -734,10 +734,17 @@ select option {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2rem;
+    /* Centrado */
+    gap: 0.5rem;
+    /* Separación drásticamente reducida */
     margin: 1.5rem 0 3.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    /* Force single row by default */
+    overflow: visible;
+    /* No scroll, recortar o reducir si es necesario */
     width: 100%;
+    max-width: 1200px;
+    padding: 0 0.5rem;
     animation: heroFadeUp 0.9s 0.2s ease both;
     position: relative;
     z-index: 10;
@@ -749,7 +756,13 @@ select option {
     justify-content: center;
     text-decoration: none;
     transition: transform 0.3s ease;
-    padding: 10px;
+    padding: 0;
+    flex: 0 0 auto;
+    /* La clave: nunca encogerse, mantener su tamaño original */
+    overflow: hidden;
+    /* Recorta los bordes de la imagen para que sea puro logo */
+    border-radius: 8px;
+    /* Borde suave al recortar el espacio transparente */
 }
 
 .hero-brand-link:hover {
@@ -757,25 +770,28 @@ select option {
 }
 
 .hero-brand-link img {
-    height: 95px;
-    /* Large highly visible logos */
+    height: 140px;
     width: auto;
-    max-width: 220px;
+    /* Toma el ancho automático en base a la altura */
+    max-width: none;
     object-fit: contain;
+    /* Las imágenes se achican uniformemente sin deformarse */
     /* Force any logo, irrespective of color, to become pure white on our dark background */
     filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
     transition: transform 0.3s ease, filter 0.3s ease;
     opacity: 0.85;
+    transform: scale(1.4);
+    /* ZOOM INTERNO: elimina el padding original de la foto */
 }
 
 .hero-brand-link:hover img {
-    transform: scale(1.1);
+    transform: scale(1.55);
     opacity: 1;
     filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(255, 255, 255, 0.4));
 }
 
 .hero-brand-link span {
-    font-size: 1.8rem;
+    font-size: 2.8rem;
     font-weight: 800;
     color: rgba(255, 255, 255, 0.85);
     text-transform: uppercase;
@@ -786,6 +802,46 @@ select option {
 .hero-brand-link:hover span {
     color: #fff;
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 768px) {
+    .hero-brands {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem 1rem;
+        width: 100%;
+        padding: 0 1rem;
+    }
+
+    .hero-brand-link {
+        padding: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .hero-brand-link img {
+        height: 120px;
+        /* Más grandes para celular */
+        max-width: 100%;
+        transform: scale(1.6);
+        /* Cortar bordes */
+    }
+
+    .hero-brand-link:hover img {
+        transform: scale(1.8);
+    }
+
+    .hero-brand-link span {
+        font-size: 1.8rem;
+        /* Letras super grandes en celular */
+    }
+
+    /* Ocultar el enlace de la página actual en celular */
+    .active-mobile-hide {
+        display: none !important;
+    }
 }
 
 /* ============================================================
@@ -885,7 +941,7 @@ select option {
     position: fixed;
     bottom: 2rem;
     right: 2rem;
-    z-index: 500;
+    z-index: 100;
 }
 
 .floating-map-circle {
@@ -1156,6 +1212,20 @@ select option {
     .floating-map {
         bottom: 1rem;
         right: 1rem;
+        z-index: 100;
+    }
+
+    .floating-map-circle {
+        width: 140px;
+        height: 140px;
+        border-width: 3px;
+    }
+
+    .floating-map-iframe {
+        top: -20px;
+        left: -20px;
+        width: 180px;
+        height: 180px;
     }
 
     .floating-map-preview {
@@ -1177,6 +1247,25 @@ select option {
 
     .noticias-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Modal de Servicio Técnico */
+    .service-modal {
+        padding: 10px;
+    }
+
+    .service-modal-content {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .service-form .form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .service-form .full-width {
+        grid-column: span 1;
     }
 
     .productos-grid {
@@ -1933,4 +2022,79 @@ img {
 .pw-toggle-dark:hover {
     color: #60a5fa;
     opacity: 1;
+}
+
+/* ============================================================
+   MOBILE RESPONSIVENESS - 2 COLUMNS CATALOG/OFFERS
+   ============================================================ */
+@media (max-width: 600px) {
+
+    /* Grids en 2 columnas */
+    .productos-grid,
+    .ofertas-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.8rem !important;
+        /* Menor espacio entre ellos para que quepan */
+    }
+
+    /* Ajustes Product Cards (Catálogo) */
+    .product-card {
+        padding: 0.8rem !important;
+        /* Menos padding interior */
+    }
+
+    .product-img {
+        height: 120px !important;
+        /* Imagen más pequeña para no alargar la tarjeta */
+    }
+
+    .product-info h3 {
+        font-size: 0.95rem !important;
+        /* Título más pequeño */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        /* Cortar si es muy largo */
+    }
+
+    .product-price {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.8rem !important;
+    }
+
+    .btn-product-view,
+    .btn-product-add {
+        padding: 0.5rem !important;
+        font-size: 0.8rem !important;
+        /* Botones más compactos */
+    }
+
+    .product-actions-grid {
+        grid-template-columns: 1fr !important;
+        /* Botón añadir carrito entero abajo del ver */
+        gap: 0.4rem !important;
+    }
+
+    .btn-product-view {
+        display: none;
+        /* Opcional: Ocultar el botón "Ver detalles" secundario para ahorrar mucho espacio, dejando solo "Añadir al Carrito" o que al dar click a la imagen vaya al producto. Haremos solo "Añadir". */
+    }
+
+    /* Ajustes Offer Cards (Ofertas) */
+    .oferta-img {
+        height: 120px !important;
+    }
+
+    .oferta-bdg {
+        font-size: 0.75rem !important;
+        padding: 0.3rem 0.6rem !important;
+    }
+
+    .oferta-card h3 {
+        font-size: 0.95rem !important;
+    }
+
+    .oferta-p {
+        font-size: 1.1rem !important;
+    }
 }

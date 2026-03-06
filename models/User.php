@@ -6,12 +6,13 @@ class User {
         $this->db = (new Database())->getConnection();
     }
 
-    public function register($nombre, $apellido, $correo, $password, $telefono = null, $direccion = null) {
+    public function register($nombre, $apellido, $correo, $password, $telefono = null, $direccion = null, $cedula = null) {
         $hash = hash('sha256', $password);
-        $sql = "INSERT INTO usuarios (nombre, apellido, correo, password_hash, telefono, direccion) VALUES (:nombre, :apellido, :correo, :hash, :telefono, :direccion)";
+        $sql = "INSERT INTO usuarios (nombre, apellido, cedula, correo, password_hash, telefono, direccion) VALUES (:nombre, :apellido, :correo, :hash, :telefono, :direccion, :cedula)";
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':nombre', $nombre);
         $stmt->bindParam(':apellido', $apellido);
+        $stmt->bindParam(':cedula', $cedula);
         $stmt->bindParam(':correo', $correo);
         $stmt->bindParam(':hash', $hash);
         $stmt->bindParam(':telefono', $telefono);
@@ -28,6 +29,14 @@ class User {
         $sql = "SELECT * FROM usuarios WHERE correo = :correo LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':correo', $correo);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    public function findByCedula($cedula) {
+        $sql = "SELECT * FROM usuarios WHERE cedula = :cedula LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':cedula', $cedula);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -57,13 +66,20 @@ class User {
         return $stmt->execute();
     }
 
-    public function updateProfile($id, $nombre, $apellido, $telefono, $direccion) {
-        $sql = "UPDATE usuarios SET nombre = :nombre, apellido = :apellido, telefono = :telefono, direccion = :direccion WHERE id = :id";
+    public function updateProfile($id, $nombre, $apellido, $telefono, $direccion, $cedula = null) {
+        $sql = "UPDATE usuarios 
+                SET nombre = :nombre, 
+                    apellido = :apellido, 
+                    telefono = :telefono, 
+                    direccion = :direccion,
+                    cedula = CASE WHEN cedula IS NULL OR cedula = '' THEN :cedula ELSE cedula END
+                WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':nombre', $nombre);
         $stmt->bindParam(':apellido', $apellido);
         $stmt->bindParam(':telefono', $telefono);
         $stmt->bindParam(':direccion', $direccion);
+        $stmt->bindParam(':cedula', $cedula);
         $stmt->bindParam(':id', $id);
         return $stmt->execute();
     }

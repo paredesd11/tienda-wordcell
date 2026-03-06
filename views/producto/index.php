@@ -2,16 +2,16 @@
     <div class="product-detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start;">
         
         <!-- Left Column: Image Gallery -->
-        <div class="product-gallery">
-            <div class="main-image-container" style="background: var(--glass-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--glass-border); text-align: center; margin-bottom: 1rem;">
+        <div class="product-gallery" style="max-width: 100%; overflow: hidden;">
+            <div class="main-image-container" style="background: var(--glass-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--glass-border); text-align: center; margin-bottom: 1rem; max-width: 100%; box-sizing: border-box;">
                 <?php 
                     $main_img_path = rtrim(URL_BASE, '/') . '/' . ltrim($imagenes[0], '/');
                 ?>
-                <img id="main-product-image" src="<?php echo htmlspecialchars($main_img_path); ?>" alt="<?php echo htmlspecialchars($producto['nombre']); ?>" style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;">
+                <img id="main-product-image" src="<?php echo htmlspecialchars($main_img_path); ?>" alt="<?php echo htmlspecialchars($producto['nombre']); ?>" style="width: 100%; max-width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;">
             </div>
             
             <?php if (count($imagenes) > 1): ?>
-            <div class="thumbnail-gallery" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem;">
+            <div class="thumbnail-gallery" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; max-width: 100%; scrollbar-width: thin; -webkit-overflow-scrolling: touch;">
                 <?php foreach($imagenes as $index => $img): ?>
                     <?php 
                         $thumb_path = rtrim(URL_BASE, '/') . '/' . ltrim($img, '/');
@@ -104,6 +104,15 @@
     .product-detail-grid {
         grid-template-columns: 1fr !important;
         gap: 2rem !important;
+    }
+}
+@media (max-width: 480px) {
+    .main-image-container {
+        padding: 1rem !important; /* Less padding to fit on mobile */
+    }
+    .gallery-thumbnail {
+        width: 60px !important;
+        height: 60px !important;
     }
 }
 </style>

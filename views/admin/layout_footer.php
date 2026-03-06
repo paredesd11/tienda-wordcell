@@ -106,5 +106,29 @@ function confirmCustom(event, message) {
 <!-- Bootstrap JS (needed for modals and interactions) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?php echo URL_BASE; ?>public/js/admin.js"></script>
+
+<!-- Mobile Sidebar Toggle Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileToggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.getElementById('adminSidebar');
+
+    if (mobileToggle && sidebar) {
+        mobileToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sidebar.classList.toggle('show');
+        });
+
+        // Cierra el sidebar al hacer click fuera en móviles
+        document.addEventListener('click', function(e) {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('show')) {
+                if (!sidebar.contains(e.target) && e.target !== mobileToggle) {
+                    sidebar.classList.remove('show');
+                }
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>

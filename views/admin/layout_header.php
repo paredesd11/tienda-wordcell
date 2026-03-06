@@ -24,14 +24,20 @@
          TOP NAVBAR
     ══════════════════════════════════════ -->
     <nav class="admin-topnav">
-        <a href="<?php echo URL_BASE; ?>" class="topnav-logo">
-            <img src="<?php echo URL_BASE; ?>public/img/Logo.webp" alt="<?php echo APP_NAME; ?>">
-        </a>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <button id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Toggle Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="<?php echo URL_BASE; ?>" class="topnav-logo">
+                <img src="<?php echo URL_BASE; ?>public/img/Logo.webp" alt="<?php echo APP_NAME; ?>">
+            </a>
+        </div>
         <div class="topnav-links">
-            <a href="<?php echo URL_BASE; ?>">Inicio</a>
-            <a href="<?php echo URL_BASE; ?>catalogo">Catálogo</a>
-            <a href="<?php echo URL_BASE; ?>admin/dashboard">Admin</a>
-            <a href="<?php echo URL_BASE; ?>carrito" class="topnav-cart" title="Carrito">
+            <?php $curr = $view ?? ''; ?>
+            <a href="<?php echo URL_BASE; ?>" class="<?php echo ($curr === 'home/index') ? 'active-mobile-hide' : ''; ?>">Inicio</a>
+            <a href="<?php echo URL_BASE; ?>catalogo" class="<?php echo (strpos($curr, 'catalogo') !== false) ? 'active-mobile-hide' : ''; ?>">Catálogo</a>
+            <a href="<?php echo URL_BASE; ?>admin/dashboard" class="<?php echo (strpos($curr, 'admin') !== false) ? 'active-mobile-hide' : ''; ?>">Admin</a>
+            <a href="<?php echo URL_BASE; ?>carrito" class="topnav-cart <?php echo (strpos($curr, 'carrito') !== false) ? 'active-mobile-hide' : ''; ?>" title="Carrito">
                 <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
                     <line x1="3" y1="6" x2="21" y2="6"/>
@@ -135,6 +141,14 @@
                                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                             </span>
                             Pedidos
+                        </a>
+                    </li>
+                    <li data-page="reportes">
+                        <a href="<?php echo URL_BASE; ?>admin/reportes">
+                            <span class="nav-icon">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                            </span>
+                            Reportes
                         </a>
                     </li>
                     <li data-page="metodos">

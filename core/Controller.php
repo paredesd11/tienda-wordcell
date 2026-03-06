@@ -23,6 +23,9 @@ class Controller {
                 if (!isset($data['ubicaciones'])) $data['ubicaciones'] = [];
             }
 
+            // Add flag to know if we are on the home page
+            $data['is_home'] = ($view === 'home/index');
+            
             // Extract variables to be accessible in view scope
             if(!empty($data)) extract($data);
             

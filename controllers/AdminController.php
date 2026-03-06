@@ -564,15 +564,54 @@ public function servicio() {
 
     public function pedidosCreate() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $usuario_id = $_POST['usuario_id'] ?? '';
-            $metodo_pago_id = $_POST['metodo_pago_id'] ?? '';
-            $total = $_POST['total'] ?? '';
-            $estado = $_POST['estado'] ?? '';
+            $usuario_id     = (int)($_POST['usuario_id'] ?? 0);
+            $metodo_pago_id = (int)($_POST['metodo_pago_id'] ?? 0);
+            $total          = $_POST['total'] ?? 0;
+            $estado         = $_POST['estado'] ?? 'Pendiente';
+
+            if (!$usuario_id || !$metodo_pago_id) {
+                $this->redirect('admin/pedidosCreate');
+            }
+
             $stmt = $this->db->prepare("INSERT INTO pedidos (usuario_id, metodo_pago_id, total, estado) VALUES (?, ?, ?, ?)");
             $stmt->execute([$usuario_id, $metodo_pago_id, $total, $estado]);
+            $pedido_id = $this->db->lastInsertId();
+
+            // --- WhatsApp notification to client ---
+            $stmtU = $this->db->prepare("SELECT nombre, apellido, telefono FROM usuarios WHERE id = ?");
+            $stmtU->execute([$usuario_id]);
+            $cliente = $stmtU->fetch(PDO::FETCH_ASSOC);
+
+            $stmtM = $this->db->prepare("SELECT tipo, banco FROM metodos_pago WHERE id = ?");
+            $stmtM->execute([$metodo_pago_id]);
+            $metodo = $stmtM->fetch(PDO::FETCH_ASSOC);
+
+            if ($cliente && !empty($cliente['telefono'])) {
+                $telefono = preg_replace('/[^0-9]/', '', $cliente['telefono']);
+                if (strpos($telefono, '593') !== 0 && strlen($telefono) == 10) {
+                    $telefono = '593' . substr($telefono, 1);
+                }
+
+                $metodo_texto = $metodo ? trim($metodo['tipo'] . ' ' . ($metodo['banco'] ?? '')) : 'N/A';
+                $total_fmt    = '$' . number_format((float)$total, 2);
+
+                $mensaje  = "🛒 *NUEVO PEDIDO REGISTRADO (#{$pedido_id})*\n\n";
+                $mensaje .= "Hola *{$cliente['nombre']} {$cliente['apellido']}*, ";
+                $mensaje .= "se ha registrado un pedido manualmente en el sistema.\n\n";
+                $mensaje .= "📋 *Detalles del Pedido:*\n";
+                $mensaje .= "🔖 *N° Pedido:* #{$pedido_id}\n";
+                $mensaje .= "💳 *Método de Pago:* {$metodo_texto}\n";
+                $mensaje .= "💰 *Total:* {$total_fmt}\n";
+                $mensaje .= "📦 *Estado:* {$estado}\n\n";
+                $mensaje .= "Gracias por confiar en nosotros. Si tienes dudas, no dudes en contactarnos. 😊";
+
+                $this->sendWhatsApp($telefono, $mensaje);
+            }
+
             $this->redirect('admin/pedidos');
         } else {
-            $this->viewAdmin('admin/pedidos/create');
+            $metodos_pago = $this->db->query("SELECT id, tipo, banco FROM metodos_pago ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $this->viewAdmin('admin/pedidos/create', ['metodos_pago' => $metodos_pago]);
         }
     }
 
@@ -661,6 +700,88 @@ public function servicio() {
         } else {
             $this->redirect('admin/pedidos');
         }
+    }
+    // --- Reportes y Ventas ---
+    public function reportes() {
+        // Leer filtros de fecha
+        $inicio = filter_input(INPUT_GET, 'inicio', FILTER_SANITIZE_STRING) ?: null;
+        $fin = filter_input(INPUT_GET, 'fin', FILTER_SANITIZE_STRING) ?: null;
+
+        $wherePedidos = "";
+        $whereServicios = "";
+        $params = [];
+
+        if ($inicio && $fin) {
+            $wherePedidos = "WHERE DATE(fecha_pedido) BETWEEN ? AND ?";
+            $whereServicios = "WHERE DATE(fecha_solicitud) BETWEEN ? AND ?";
+            $params = [$inicio, $fin];
+        }
+
+        // Totales de Pedidos agrupados por estado
+        $stmtPedidos = $this->db->prepare("
+            SELECT estado, COUNT(*) as cantidad, SUM(total) as monto 
+            FROM pedidos 
+            $wherePedidos
+            GROUP BY estado
+        ");
+        $stmtPedidos->execute($params);
+        $reportePedidos = $stmtPedidos->fetchAll(PDO::FETCH_ASSOC);
+
+        // Totales de Servicios Técnicos agrupados por estado
+        $stmtServicios = $this->db->prepare("
+            SELECT estado, COUNT(*) as cantidad, SUM(precio_estimado) as monto 
+            FROM servicio_tecnico 
+            $whereServicios
+            GROUP BY estado
+        ");
+        $stmtServicios->execute($params);
+        $reporteServicios = $stmtServicios->fetchAll(PDO::FETCH_ASSOC);
+
+        // Usuario actual para imprimir en el PDF
+        $user_id = $_SESSION['user_id'] ?? 0;
+        $stmtUser = $this->db->prepare("SELECT nombre, apellido, cedula FROM usuarios WHERE id = ?");
+        $stmtUser->execute([$user_id]);
+        $currentUser = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+        // --- Extracción de Detalles para el PDF ---
+        $stmtListaPedidos = $this->db->prepare("
+            SELECT 
+                p.id as pedido_id, p.fecha_pedido, p.total, p.estado, 
+                u.nombre, u.apellido, u.cedula, u.correo,
+                (SELECT GROUP_CONCAT(CONCAT(pr.nombre, ' (x', dp.cantidad, ')') SEPARATOR ', ') 
+                 FROM detalle_pedidos dp 
+                 JOIN productos pr ON dp.producto_id = pr.id 
+                 WHERE dp.pedido_id = p.id) as detalle
+            FROM pedidos p
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            $wherePedidos
+            ORDER BY p.fecha_pedido DESC
+        ");
+        $stmtListaPedidos->execute($params);
+        $listaPedidos = $stmtListaPedidos->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtListaServicios = $this->db->prepare("
+            SELECT 
+                s.id as servicio_id, s.fecha_solicitud, s.precio_estimado as total, s.estado, 
+                u.nombre, u.apellido, u.cedula, u.correo,
+                CONCAT(s.dispositivo, ' - ', s.descripcion_problema) as detalle
+            FROM servicio_tecnico s
+            LEFT JOIN usuarios u ON s.usuario_id = u.id
+            $whereServicios
+            ORDER BY s.fecha_solicitud DESC
+        ");
+        $stmtListaServicios->execute($params);
+        $listaServicios = $stmtListaServicios->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->viewAdmin('admin/reportes/index', [
+            'reportePedidos' => $reportePedidos,
+            'reporteServicios' => $reporteServicios,
+            'listaPedidos' => $listaPedidos,
+            'listaServicios' => $listaServicios,
+            'currentUser' => $currentUser,
+            'inicio' => $inicio,
+            'fin' => $fin
+        ]);
     }
 
     // --- Usuarios CRUD ---
@@ -985,5 +1106,27 @@ public function servicio() {
         $stmt = $this->db->prepare("DELETE FROM reglas_envio WHERE id = ?");
         $stmt->execute([$id]);
         $this->redirect('admin/reglas_envio');
+    }
+
+    public function ajaxSearchUsers() {
+        header('Content-Type: application/json');
+        if (!isset($_GET['q']) || trim($_GET['q']) === '') {
+            echo json_encode([]);
+            return;
+        }
+        
+        $q = '%' . trim($_GET['q']) . '%';
+        $sql = "SELECT id, nombre, apellido, correo, cedula 
+                FROM usuarios 
+                WHERE nombre LIKE ? 
+                   OR apellido LIKE ? 
+                   OR correo LIKE ? 
+                   OR cedula LIKE ? 
+                LIMIT 10";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$q, $q, $q, $q]);
+        
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($users);
     }
 }

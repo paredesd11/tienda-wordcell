@@ -27,13 +27,15 @@ $show_register = isset($show_register_form) && $show_register_form;
         <form action="<?php echo URL_BASE; ?>auth/loginPost" method="POST" style="width:100%;">
             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
 
-            <div class="auth-input-group">
-                <input type="email" name="correo" placeholder="Correo Electrónico" required autocomplete="email">
+            <div class="floating-group">
+                <input type="email" name="correo" class="floating-input" placeholder=" " required autocomplete="email">
+                <label class="floating-label">Correo Electrónico</label>
             </div>
 
-            <div class="auth-input-group">
+            <div class="floating-group">
                 <div class="pw-field-wrap">
-                    <input type="password" id="login-password" name="password" placeholder="Contraseña" required autocomplete="current-password">
+                    <input type="password" id="login-password" name="password" class="floating-input" placeholder=" " required autocomplete="current-password">
+                    <label class="floating-label">Contraseña</label>
                     <button type="button" class="pw-toggle" onclick="togglePw('login-password', this)" aria-label="Ver contraseña">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -62,34 +64,45 @@ $show_register = isset($show_register_form) && $show_register_form;
         <form id="register-form" action="<?php echo URL_BASE; ?>auth/registerPost" method="POST" style="width:100%;">
             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
 
-            <div class="auth-input-group">
-                <input type="text" name="nombre" placeholder="Nombres" required autocomplete="given-name">
+            <div class="floating-group">
+                <input type="text" name="nombre" class="floating-input" placeholder=" " required autocomplete="given-name">
+                <label class="floating-label">Nombres *</label>
             </div>
-            <div class="auth-input-group">
-                <input type="text" name="apellido" placeholder="Apellidos" required autocomplete="family-name">
+            <div class="floating-group">
+                <input type="text" name="apellido" class="floating-input" placeholder=" " required autocomplete="family-name">
+                <label class="floating-label">Apellidos *</label>
             </div>
-            <div class="auth-input-group">
-                <input type="email" name="correo" placeholder="Correo Electrónico" required autocomplete="email">
+            <div class="floating-group">
+                <input type="text" name="cedula" class="floating-input" placeholder=" " required autocomplete="off">
+                <label class="floating-label">Cédula de Identidad *</label>
             </div>
-            <div class="auth-input-group">
-                <input type="text" name="telefono" placeholder="Teléfono / WhatsApp (+593...)" required autocomplete="tel">
+            <div class="floating-group">
+                <input type="email" name="correo" class="floating-input" placeholder=" " required autocomplete="email">
+                <label class="floating-label">Correo Electrónico *</label>
             </div>
-            <div class="auth-input-group">
-                <input type="text" name="direccion" placeholder="Dirección (Calle, Nro, Referencia)" required autocomplete="street-address">
+            <div class="floating-group">
+                <input type="text" name="telefono" class="floating-input" placeholder=" " required autocomplete="tel">
+                <label class="floating-label">Teléfono / WhatsApp *</label>
+            </div>
+            <div class="floating-group">
+                <input type="text" name="direccion" class="floating-input" placeholder=" " required autocomplete="street-address">
+                <label class="floating-label">Dirección Completa *</label>
             </div>
 
-            <div class="auth-input-group">
+            <div class="floating-group">
                 <div class="pw-field-wrap">
-                    <input type="password" id="reg-password" name="password" placeholder="Contraseña" required autocomplete="new-password">
+                    <input type="password" id="reg-password" name="password" class="floating-input" placeholder=" " required autocomplete="new-password">
+                    <label class="floating-label">Contraseña *</label>
                     <button type="button" class="pw-toggle" onclick="togglePw('reg-password', this)" aria-label="Ver contraseña">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="auth-input-group">
+            <div class="floating-group">
                 <div class="pw-field-wrap">
-                    <input type="password" id="reg-password-repeat" name="password_repeat" placeholder="Repetir Contraseña" required autocomplete="new-password">
+                    <input type="password" id="reg-password-repeat" name="password_repeat" class="floating-input" placeholder=" " required autocomplete="new-password">
+                    <label class="floating-label">Repetir Contraseña *</label>
                     <button type="button" class="pw-toggle" onclick="togglePw('reg-password-repeat', this)" aria-label="Ver contraseña">
                         <i class="fas fa-eye"></i>
                     </button>

@@ -31,10 +31,11 @@
 
             <!-- Navigation -->
             <nav class="header-nav">
-                <a href="<?php echo URL_BASE; ?>">Inicio</a>
-                <a href="<?php echo URL_BASE; ?>catalogo">Catálogo</a>
+                <?php $curr = $view ?? ''; ?>
+                <a href="<?php echo URL_BASE; ?>" class="nav-link-inicio <?php echo ($curr === 'home/index') ? 'active-mobile-hide' : ''; ?>">Inicio</a>
+                <a href="<?php echo URL_BASE; ?>catalogo" class="nav-link-catalogo <?php echo (strpos($curr, 'catalogo') !== false) ? 'active-mobile-hide' : ''; ?>">Catálogo</a>
                 <?php if(isset($_SESSION['user_id']) && $_SESSION['user_rol'] == 1): ?>
-                    <a href="<?php echo URL_BASE; ?>admin/dashboard">Admin</a>
+                    <a href="<?php echo URL_BASE; ?>admin/dashboard" class="nav-link-admin <?php echo (strpos($curr, 'admin') !== false) ? 'active-mobile-hide' : ''; ?>">Admin</a>
                 <?php endif; ?>
                 
                 <?php
@@ -46,7 +47,7 @@
                         }
                     }
                 ?>
-                <a href="<?php echo URL_BASE; ?>carrito" class="header-cart" title="Carrito" style="position: relative;">
+                <a href="<?php echo URL_BASE; ?>carrito" class="header-cart <?php echo (strpos($curr, 'carrito') !== false) ? 'active-mobile-hide' : ''; ?>" title="Carrito" style="position: relative;">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
                         <line x1="3" y1="6" x2="21" y2="6"/>
@@ -58,10 +59,10 @@
                 </a>
                 
                 <?php if(isset($_SESSION['user_id'])): ?>
-                    <a href="<?php echo URL_BASE; ?>user/panel">Mi Panel</a>
-                    <a href="<?php echo URL_BASE; ?>auth/logout" class="header-link-danger">Salir</a>
+                    <a href="<?php echo URL_BASE; ?>user/panel" class="nav-link-panel <?php echo (strpos($curr, 'user/panel') !== false) ? 'active-mobile-hide' : ''; ?>">Mi Panel</a>
+                    <a href="<?php echo URL_BASE; ?>auth/logout" class="header-link-danger nav-link-salir">Salir</a>
                 <?php else: ?>
-                    <a href="<?php echo URL_BASE; ?>auth/login" class="header-link-danger">Iniciar Sesión</a>
+                    <a href="<?php echo URL_BASE; ?>auth/login" class="header-link-danger nav-link-login">Iniciar Sesión</a>
                 <?php endif; ?>
             </nav>
         </div>
