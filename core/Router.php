@@ -14,12 +14,12 @@ class Router {
     public function dispatch($url) {
         $url = $this->parseUrl($url);
 
-        if (isset($url[0]) && file_exists('../controllers/' . ucfirst($url[0]) . 'Controller.php')) {
+        if (isset($url[0]) && file_exists(__DIR__ . '/../controllers/' . ucfirst($url[0]) . 'Controller.php')) {
             $this->controller = ucfirst($url[0]) . 'Controller';
             unset($url[0]);
         }
 
-        require_once '../controllers/' . $this->controller . '.php';
+        require_once __DIR__ . '/../controllers/' . $this->controller . '.php';
         $this->controller = new $this->controller;
 
         if (isset($url[1])) {

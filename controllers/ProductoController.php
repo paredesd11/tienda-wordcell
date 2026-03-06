@@ -1,5 +1,5 @@
 <?php
-require_once '../core/Controller.php';
+require_once __DIR__ . '/../core/Controller.php';
 
 class ProductoController extends Controller {
     private $db;

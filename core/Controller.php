@@ -1,15 +1,15 @@
 <?php
 class Controller {
     public function model($model) {
-        require_once '../models/' . $model . '.php';
+        require_once __DIR__ . '/../models/' . $model . '.php';
         return new $model();
     }
 
     public function view($view, $data = []) {
-        if (file_exists('../views/' . $view . '.php')) {
+        if (file_exists(__DIR__ . '/../views/' . $view . '.php')) {
             // Automatically fetch global footer data if not provided
             try {
-                require_once '../core/Database.php';
+                require_once __DIR__ . '/../core/Database.php';
                 $db = (new Database())->getConnection();
                 
                 if (!isset($data['redesSociales'])) {
@@ -29,34 +29,34 @@ class Controller {
             // Extract variables to be accessible in view scope
             if(!empty($data)) extract($data);
             
-            require_once '../views/layout/header.php';
-            require_once '../views/' . $view . '.php';
-            require_once '../views/layout/footer.php';
+            require_once __DIR__ . '/../views/layout/header.php';
+            require_once __DIR__ . '/../views/' . $view . '.php';
+            require_once __DIR__ . '/../views/layout/footer.php';
         } else {
             die("La vista no existe.");
         }
     }
 
     public function viewAdmin($view, $data = []) {
-        if (file_exists('../views/' . $view . '.php')) {
+        if (file_exists(__DIR__ . '/../views/' . $view . '.php')) {
             if(!empty($data)) extract($data);
             
-            require_once '../views/admin/layout_header.php';
-            require_once '../views/' . $view . '.php';
-            require_once '../views/admin/layout_footer.php';
+            require_once __DIR__ . '/../views/admin/layout_header.php';
+            require_once __DIR__ . '/../views/' . $view . '.php';
+            require_once __DIR__ . '/../views/admin/layout_footer.php';
         } else {
             die("La vista admin no existe.");
         }
     }
 
     public function viewAuth($view, $data = []) {
-        if (file_exists('../views/' . $view . '.php')) {
+        if (file_exists(__DIR__ . '/../views/' . $view . '.php')) {
             if(!empty($data)) extract($data);
             
             // Layout simplified for auth
-            require_once '../views/auth/layout_header.php';
-            require_once '../views/' . $view . '.php';
-            require_once '../views/auth/layout_footer.php';
+            require_once __DIR__ . '/../views/auth/layout_header.php';
+            require_once __DIR__ . '/../views/' . $view . '.php';
+            require_once __DIR__ . '/../views/auth/layout_footer.php';
         } else {
             die("La vista auth no existe.");
         }
@@ -69,7 +69,7 @@ class Controller {
 
     protected function sendWhatsApp($to, $message) {
         try {
-            require_once '../core/Database.php';
+            require_once __DIR__ . '/../core/Database.php';
             $db = (new Database())->getConnection();
             $config = $db->query("SELECT * FROM configuracion_whatsapp_api LIMIT 1")->fetch(PDO::FETCH_ASSOC);
 

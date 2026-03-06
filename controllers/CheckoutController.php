@@ -158,7 +158,7 @@ class CheckoutController extends Controller {
             if ($metodo['tipo'] == 'Transferencia') {
                 $fileInputName = 'comprobante_' . $metodo_pago_id;
                 if (isset($_FILES[$fileInputName]) && $_FILES[$fileInputName]['error'] == UPLOAD_ERR_OK) {
-                    $fsUploadDir = '../public/img/comprobantes/';
+                    $fsUploadDir = __DIR__ . '/../public/img/comprobantes/';
                     $urlUploadDir = 'public/img/comprobantes/';
                     
                     if (!is_dir($fsUploadDir)) {

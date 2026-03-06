@@ -41,12 +41,12 @@ class HomeController extends Controller {
 
     private function notificarAdminsWhatsApp($dispositivo, $prioridad, $precio, $descripcion, $fecha_fin, $fecha_inicio) {
         try {
-            file_put_contents('../wa_debug2.txt', "Starting notification process...\n", FILE_APPEND);
+            file_put_contents(__DIR__ . '/../wa_debug2.txt', "Starting notification process...\n", FILE_APPEND);
             $admins = $this->db->query("SELECT numero FROM configuracion_whatsapp")->fetchAll(PDO::FETCH_COLUMN);
             $userId = $_SESSION['user_id'];
             $user = $this->db->query("SELECT nombre, apellido, telefono, direccion FROM usuarios WHERE id = $userId")->fetch(PDO::FETCH_ASSOC);
 
-            file_put_contents('../wa_debug2.txt', "Found " . count($admins) . " admins.\n", FILE_APPEND);
+            file_put_contents(__DIR__ . '/../wa_debug2.txt', "Found " . count($admins) . " admins.\n", FILE_APPEND);
 
             $nombre_cliente = ($user['nombre'] ?? 'Cliente') . ' ' . ($user['apellido'] ?? '');
             $telefono_cliente = $user['telefono'] ?? 'No registrado';
@@ -62,15 +62,15 @@ class HomeController extends Controller {
 
             foreach ($admins as $numero) {
                 if (empty(trim($numero))) {
-                    file_put_contents('../wa_debug2.txt', "Skipped empty number.\n", FILE_APPEND);
+                    file_put_contents(__DIR__ . '/../wa_debug2.txt', "Skipped empty number.\n", FILE_APPEND);
                     continue;
                 }
-                file_put_contents('../wa_debug2.txt', "Sending to $numero...\n", FILE_APPEND);
+                file_put_contents(__DIR__ . '/../wa_debug2.txt', "Sending to $numero...\n", FILE_APPEND);
                 $res = $this->sendWhatsApp($numero, $mensaje);
-                file_put_contents('../wa_debug2.txt', "Send Result: " . ($res ? "OK" : "FAIL") . "\n", FILE_APPEND);
+                file_put_contents(__DIR__ . '/../wa_debug2.txt', "Send Result: " . ($res ? "OK" : "FAIL") . "\n", FILE_APPEND);
             }
         } catch (Exception $e) {
-            file_put_contents('../wa_debug2.txt', "Exception: " . $e->getMessage() . "\n", FILE_APPEND);
+            file_put_contents(__DIR__ . '/../wa_debug2.txt', "Exception: " . $e->getMessage() . "\n", FILE_APPEND);
             error_log("Error notificando WhatsApp: " . $e->getMessage());
         }
     }
