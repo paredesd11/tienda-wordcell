@@ -1,10 +1,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Evitar bucles infinitos: no reescribir si la petición ya va hacia /public/
-    RewriteCond %{REQUEST_URI} !/public/
-    RewriteCond %{REQUEST_URI} !/public$
+    # Si el archivo o directorio existen físicamente, cargarlos (ej: las imágenes o css dentro de public/)
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
     
-    # Redirigir silenciosamente todo el tráfico a la carpeta public/
-    RewriteRule ^(.*)$ public/$1 [L]
+    # Si no, redirigir todo a index.php en la raíz (evitando el error 403 de InfinityFree al reescribir a /public)
+    RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
