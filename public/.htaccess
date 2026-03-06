@@ -1,5 +1,4 @@
 <IfModule mod_rewrite.c>
-    # Options -Indexes (Comentado porque en InfinityFree esto causa Error 403)
     RewriteEngine On
 
     # Si el archivo o directorio existen físicamente, cargarlos (ej: imagenes, css)

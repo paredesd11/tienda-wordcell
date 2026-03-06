@@ -1,27 +1,13 @@
-# ¡REMOVIDO: Options -Indexes CAUSA ERROR 403 EN INFINITYFREE!
-# Options -Indexes 
-AddDefaultCharset UTF-8
-
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /
-
-    # No tocar archivos/directorios reales
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-
-    # Todo pasa por la carpeta public/
-    RewriteRule ^$ public/ [L]
+    
+    # Previene loops infinitos y redirige TODO a public/
+    RewriteCond %{REQUEST_URI} !^/public/
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 
-# InfinityFree: seguridad archivos sensibles
-<FilesMatch "(config\.php|\.env|\.sql|\.log)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order Allow,Deny
-        Deny from all
-    </IfModule>
+# Bloqueo básico de seguridad (compatible con Apache 2.2 en InfinityFree)
+<FilesMatch "\.(env|sql|log)$">
+    Order allow,deny
+    Deny from all
 </FilesMatch>
