@@ -19,11 +19,11 @@ if ($isLocal) {
 
 } else {
     // ── ENTORNO PRODUCCIÓN (InfinityFree) ─────────
-    define('DB_HOST', 'sql307.infinityfree.com');
-    define('DB_USER', 'if0_41073337');
-    define('DB_PASS', '6hOywZhEBmvYGM');
-    define('DB_NAME', 'if0_41073337_tienda_mvc');
-    define('URL_BASE', 'https://wordcell.kesug.com'); // AÑADIDO HTTPS:// Y LA BARRA FINAL /
+    define('DB_HOST', 'sql211.infinityfree.com');
+    define('DB_USER', 'if0_41325196');
+    define('DB_PASS', 'Danny110404');
+    define('DB_NAME', 'if0_41325196_tienda_mvc');
+    define('URL_BASE', 'https://wordcell.kesug.com/'); // AÑADIDO HTTPS:// Y LA BARRA FINAL /
 }
 
 // ── Configuración general ─────────────────────────
