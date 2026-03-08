@@ -8,7 +8,7 @@ class User {
 
     public function register($nombre, $apellido, $correo, $password, $telefono = null, $direccion = null, $cedula = null) {
         $hash = hash('sha256', $password);
-        $sql = "INSERT INTO usuarios (nombre, apellido, cedula, correo, password_hash, telefono, direccion) VALUES (:nombre, :apellido, :correo, :hash, :telefono, :direccion, :cedula)";
+        $sql = "INSERT INTO usuarios (nombre, apellido, cedula, correo, password_hash, telefono, direccion) VALUES (:nombre, :apellido, :cedula, :correo, :hash, :telefono, :direccion)";
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':nombre', $nombre);
         $stmt->bindParam(':apellido', $apellido);

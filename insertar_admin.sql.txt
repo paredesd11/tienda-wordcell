@@ -1,0 +1,13 @@
+-- Insertar un administrador por defecto (Asegúrate de cambiar los datos si es necesario)
+-- La contraseña por defecto es: Password123! (hasheada con SHA-256)
+INSERT INTO usuarios (rol_id, nombre, apellido, cedula, correo, password_hash, telefono, direccion) 
+VALUES (
+    1, -- Asumiendo que 1 es el ID del rol Administrador
+    'Admin', 
+    'Principal', 
+    '0000000000', 
+    'admin@tuweb.com', 
+    '2d1742416b24e6fb12dc5f0a7cb5d84c6c19a9baee22e70ee31b78ee2b87cd31', -- SHA256 de Password123!
+    '0000000000', 
+    'Direccion del Admin'
+);
