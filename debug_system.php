@@ -46,7 +46,23 @@ if (is_dir($controllers_dir)) {
         try {
             // Check for syntax errors by including it
             include_once $file;
-            echo "<span style='color:green;'>✅ Syntax OK</span><br>";
+            echo "<span style='color:green;'>✅ Syntax OK</span>";
+            
+            // Try to instantiate AdminController if it's the one
+            if ($basename === 'AdminController.php') {
+                try {
+                    // We need a session for AdminController constructor
+                    if (session_status() === PHP_SESSION_NONE) session_start();
+                    $_SESSION['user_id'] = 1; // Fake admin
+                    $_SESSION['user_rol'] = 1;
+                    
+                    $admin = new AdminController();
+                    echo " | <span style='color:green;'>✅ Instantiation OK</span>";
+                } catch (Throwable $t) {
+                    echo " | <span style='color:red;'>❌ Instantiation FAILED: " . $t->getMessage() . "</span>";
+                }
+            }
+            echo "<br>";
         } catch (Throwable $t) {
             echo "<span style='color:red;'>❌ ERROR: " . $t->getMessage() . "</span><br>";
         }
