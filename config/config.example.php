@@ -25,7 +25,7 @@ if ($isLocal) {
     define('DB_PASS', 'Danny110404');
     define('DB_NAME', 'if0_41339156_tienda_mvc');
     // ⚠️ CAMBIAR: Dominio oficial del cliente
-    define('URL_BASE', 'http://wordcell-ec.wuaze.com/');
+    define('URL_BASE', 'https://wordcell-ec.wuaze.com/');
 }
 
 // ── Configuración general ─────────────────────────

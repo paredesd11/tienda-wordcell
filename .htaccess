@@ -4,11 +4,18 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteBase /
 
-    # Si el archivo o directorio existen físicamente, cargarlos (ej: las imágenes o css dentro de public/)
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    
-    # Si no, redirigir todo a index.php en la raíz (evitando el error 403 de InfinityFree al reescribir a /public)
-    RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+    # Forzar HTTPS (Compatible con el proxy de InfinityFree)
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Si la petición es para un archivo o directorio real (especialmente dentro de public/), detener aquí.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Redirigir todo lo demás al index real dentro de public/
+    # Esto funciona mejor en InfinityFree al apuntar directamente al archivo que maneja el ruteo.
+    RewriteRule ^(.*)$ public/index.php?url=$1 [QSA,L]
 </IfModule>
