@@ -71,14 +71,24 @@ if (is_dir($controllers_dir)) {
     echo "❌ Controllers directory MISSING.<br>";
 }
 
-// 4. Check Database Connection
-echo "<h2>Database Connection Check</h2>";
+// 4. Check Database Structure
+echo "<h2>Table Structure Check</h2>";
 try {
     $db = new Database();
     $conn = $db->getConnection();
     echo "✅ Database connection SUCCESSFUL.<br>";
+    
+    $tables_to_check = ['servicio_tecnico', 'noticias', 'usuarios'];
+    foreach ($tables_to_check as $table) {
+        echo "<h3>Structure of $table:</h3><ul>";
+        $columns = $conn->query("SHOW COLUMNS FROM $table")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($columns as $col) {
+            echo "<li>{$col['Field']} ({$col['Type']})</li>";
+        }
+        echo "</ul>";
+    }
 } catch (Throwable $t) {
-    echo "❌ Database connection FAILED: " . $t->getMessage() . "<br>";
+    echo "❌ Database check FAILED: " . $t->getMessage() . "<br>";
 }
 
 // 5. Session Check
