@@ -70,6 +70,42 @@
     <?php endif; ?>
 </section>
 
+<!-- LEAFLET CSS & JS FOR MAP PICKER -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        #mapPickerContainer {
+            height: 300px;
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn-map {
+            width: 100%;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.3s;
+        }
+        .btn-map:hover { background: #1d4ed8; }
+        .location-result {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+
 <!-- ═══════════════════════════════════════════════════════════
      MODAL: SOLICITAR SERVICIO TÉCNICO
 ═══════════════════════════════════════════════════════════ -->
@@ -103,9 +139,66 @@
                     <input type="datetime-local" name="fecha_fin" id="dateFin" required onchange="calculatePrice()">
                 </div>
                 <div class="form-group">
-                    <label>Precio Estimado ($)</label>
+                    <label>
+                        Precio Estimado ($)
+                        <span id="discountBadge" style="display:none; font-size: 0.75rem; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">
+                            Oferta Aplicada!
+                        </span>
+                    </label>
                     <input type="text" id="estimatedPrice" readonly value="20.00">
-                    <small>El precio varía según la urgencia de entrega.</small>
+                    <small>El precio varía según la urgencia y prioridades.</small>
+                    <input type="hidden" id="discountAppliedId" name="oferta_servicio_id" value="">
+                </div>
+            </div>
+            
+            <div class="form-group full-width" style="margin-top: 15px;">
+                <label>Tipo de Entrega</label>
+                <select name="tipo_entrega" id="tipoEntregaClient" onchange="toggleEntregaClient()">
+                    <option value="Entrega fisica">Entrega física (En mostrador)</option>
+                    <option value="Recepcion a domicilio">Recepción a domicilio</option>
+                    <option value="Envio al local">Envío al local (Por encomienda)</option>
+                </select>
+            </div>
+            <div id="fieldsDomicilioClient" class="form-group full-width" style="display:none; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-top: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="grid-column: span 2;">
+                        <label>Ubicación / Dirección exacta (Domicilio)</label>
+                        <button type="button" class="btn-map" onclick="openMapPicker()">
+                            <i class="fas fa-map-marker-alt"></i> Abrir Mapa para Seleccionar Ubicación
+                        </button>
+                        <div id="mapPickerContainer"></div>
+                        <div id="locationResultText" class="location-result"></div>
+                        <input type="hidden" name="ubicacion_domicilio" id="ubicacionHiddenInput">
+                    </div>
+                    <div>
+                        <label>Fecha de Recepción</label>
+                        <input type="date" name="fecha_domicilio">
+                    </div>
+                    <div>
+                        <label>Hora de Recepción Estimada</label>
+                        <input type="time" name="hora_domicilio">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="fieldsLocalClient" class="form-group full-width" style="display:none; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-top: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="grid-column: span 2;">
+                        <label>Sucursal del Local (Destino)</label>
+                        <input type="text" name="sucursal_local" placeholder="Ej: Matriz Norte">
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <label>Método / Agencia de Envío</label>
+                        <input type="text" name="metodo_envio" placeholder="Ej: Servientrega, Tramaco, etc.">
+                    </div>
+                    <div>
+                        <label>Fecha Estimada de Llegada</label>
+                        <input type="date" name="fecha_local">
+                    </div>
+                    <div>
+                        <label>Hora Estimada de Llegada</label>
+                        <input type="time" name="hora_local">
+                    </div>
                 </div>
             </div>
             
@@ -121,6 +214,12 @@
         </form>
     </div>
 </div>
+<style>
+#serviceRequestModal .service-modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+</style>
 
 <script>
     // Configuración de precios desde la base de datos
@@ -128,6 +227,23 @@
     
     function getRule(concepto) {
         return pricingRules.find(r => r.concepto === concepto) || { valor: 0, tipo: 'Monto' };
+    }
+
+    function toggleEntregaClient() {
+        const val = document.getElementById('tipoEntregaClient').value;
+        const fDomicilio = document.getElementById('fieldsDomicilioClient');
+        const fLocal = document.getElementById('fieldsLocalClient');
+        
+        if (val === 'Recepcion a domicilio') {
+            fDomicilio.style.display = 'block';
+            fLocal.style.display = 'none';
+        } else if (val === 'Envio al local') {
+            fDomicilio.style.display = 'none';
+            fLocal.style.display = 'block';
+        } else {
+            fDomicilio.style.display = 'none';
+            fLocal.style.display = 'none';
+        }
     }
 
     function openServiceModal() {
@@ -146,6 +262,74 @@
         delivery.setMinutes(delivery.getMinutes() - delivery.getTimezoneOffset());
         document.getElementById('dateFin').value = delivery.toISOString().slice(0, 16);
         calculatePrice();
+    }
+
+    let map = null;
+    let marker = null;
+
+    function openMapPicker() {
+        const container = document.getElementById('mapPickerContainer');
+        container.style.display = 'block';
+        
+        // Timeout to allow the div to render properly before Leaflet calculates size
+        setTimeout(() => {
+            if (!map) {
+                // Initialize map centered in Guayaquil (default)
+                map = L.map('mapPickerContainer').setView([-2.196, -79.886], 13);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                marker = L.marker([-2.196, -79.886], {draggable: true}).addTo(map);
+
+                // Event on drag end
+                marker.on('dragend', function (e) {
+                    const position = marker.getLatLng();
+                    reverseGeocode(position.lat, position.lng);
+                });
+
+                // Event on map click
+                map.on('click', function(e) {
+                    marker.setLatLng(e.latlng);
+                    reverseGeocode(e.latlng.lat, e.latlng.lng);
+                });
+                
+                // Try to get user current location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(pos) {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        map.setView([lat, lng], 15);
+                        marker.setLatLng([lat, lng]);
+                        reverseGeocode(lat, lng);
+                    });
+                }
+            } else {
+                map.invalidateSize();
+            }
+        }, 300);
+    }
+
+    function reverseGeocode(lat, lng) {
+        document.getElementById('locationResultText').innerText = "Buscando dirección...";
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data && data.display_name) {
+                    // Extract a shorter string from display_name
+                    const parts = data.display_name.split(',');
+                    const cleanAddress = parts.slice(0, 3).join(', ');
+                    
+                    document.getElementById('locationResultText').innerText = "📍 " + cleanAddress;
+                    document.getElementById('ubicacionHiddenInput').value = cleanAddress;
+                }
+            })
+            .catch(err => {
+                document.getElementById('locationResultText').innerText = "📍 Coordenadas: " + lat.toFixed(5) + ", " + lng.toFixed(5);
+                document.getElementById('ubicacionHiddenInput').value = lat + ", " + lng;
+            });
     }
 
     function closeServiceModal() {
@@ -185,6 +369,54 @@
             }
         }
 
+        // --- SISTEMA DE OFERTAS SERVICIO TECNICO ---
+        const ofertasServicios = <?php echo json_encode($ofertasServicios ?? []); ?>;
+        const isFirstRequest = <?php echo ($isFirstRequest ?? true) ? 'true' : 'false'; ?>;
+        
+        // Hide badge by default
+        document.getElementById('discountBadge').style.display = 'none';
+        document.getElementById('discountAppliedId').value = '';
+        document.getElementById('estimatedPrice').style.textDecoration = 'none';
+        document.getElementById('estimatedPrice').style.color = '#fff';
+
+        // Check for applicable offers
+        let bestDiscount = 0;
+        let bestOfferId = null;
+        let offerName = '';
+
+        if(ofertasServicios && ofertasServicios.length > 0) {
+            ofertasServicios.forEach(oferta => {
+                let applicable = false;
+                if(oferta.condicion === 'TODOS') {
+                    applicable = true;
+                } else if(oferta.condicion === 'PRIMERA_VEZ' && isFirstRequest) {
+                    applicable = true;
+                }
+
+                if(applicable) {
+                    let descVal = parseFloat(oferta.descuento_porcentaje);
+                    if(descVal > bestDiscount) {
+                        bestDiscount = descVal;
+                        bestOfferId = oferta.id;
+                        offerName = oferta.nombre;
+                    }
+                }
+            });
+        }
+
+        // Apply discount if found
+        if(bestDiscount > 0) {
+            const originalTotal = total;
+            total = total - (total * (bestDiscount / 100));
+            
+            // UI changes
+            document.getElementById('discountBadge').style.display = 'inline-block';
+            document.getElementById('discountBadge').innerText = `🔥 -${bestDiscount}% ${offerName}`;
+            document.getElementById('discountAppliedId').value = bestOfferId;
+            document.getElementById('estimatedPrice').style.color = '#10b981'; // Green to denote discount
+        }
+        // --- FIN OFERTAS ---
+
         document.getElementById('estimatedPrice').value = total.toFixed(2);
     }
 
@@ -203,9 +435,13 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    showCustomAlert("¡Solicitud registrada con éxito! Un técnico te contactará pronto.");
-                    closeServiceModal();
-                    this.reset();
+                    if (data.id) {
+                        window.location.href = "<?php echo URL_BASE; ?>user/servicioPdf/" + data.id;
+                    } else {
+                        showCustomAlert("¡Solicitud registrada con éxito! Un técnico te contactará pronto.");
+                        closeServiceModal();
+                        this.reset();
+                    }
                 } else {
                     if (data.error_type === 'auth') {
                         showCustomAlert(data.message);
@@ -234,7 +470,16 @@
         <div class="marquee-container interactive-marquee" id="marquee-noticias">
             <div class="marquee-content">
                 <?php foreach($noticias as $n): ?>
-                <div class="noticia-card draggable-card">
+                <div class="noticia-card draggable-card" style="cursor:pointer; user-select:none;"
+                     data-noticia-json="<?php echo htmlspecialchars(json_encode([
+                         'titulo'   => $n['titulo'] ?? '',
+                         'contenido'=> $n['contenido'] ?? '',
+                         'autor'    => $n['autor'] ?? 'WorldCell',
+                         'fecha'    => !empty($n['fecha_publicacion']) ? date('d/m/Y', strtotime($n['fecha_publicacion'])) : '',
+                         'imagen'   => !empty($n['imagen_url']) ? (URL_BASE . ltrim($n['imagen_url'], '/')) : '',
+                         'url'      => $n['url_externa'] ?? '',
+                         'is_oferta'=> !empty($n['oferta_servicio_id']),
+                     ]), ENT_QUOTES); ?>">
                     <?php if (!empty($n['imagen_url'])): ?>
                         <div class="noticia-img">
                             <img src="<?php echo URL_BASE . ltrim(htmlspecialchars($n['imagen_url']), '/'); ?>"
@@ -255,6 +500,107 @@
         </div>
     <?php endif; ?>
 </section>
+
+<!-- ═══ MODAL NOTICIA ═══ -->
+<div id="noticia-modal-overlay" style="
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(0,0,0,0.75); backdrop-filter:blur(6px);
+    align-items:center; justify-content:center; padding:16px;
+    display:none;">
+    <div id="noticia-modal-box" onclick="event.stopPropagation()" style="
+        background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);
+        border:1px solid #334155; border-radius:20px;
+        width:100%; max-width:560px; max-height:88vh; overflow-y:auto;
+        padding:0; position:relative; animation:nmSlideIn .3s ease;">
+        <!-- Cabecera -->
+        <div id="nm-header" style="padding:28px 28px 0; display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+            <div>
+                <span id="nm-fecha" style="font-size:0.72rem;color:#64748b;letter-spacing:.05em;"></span>
+                <h2 id="nm-titulo" style="margin:6px 0 0;font-size:1.25rem;font-weight:700;color:#f1f5f9;line-height:1.3;"></h2>
+                <span id="nm-autor" style="font-size:0.78rem;color:#94a3b8;"></span>
+            </div>
+            <button onclick="closeNoticiaModal()" style="flex-shrink:0;background:rgba(255,255,255,.07);border:none;color:#94a3b8;border-radius:50%;width:36px;height:36px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">✕</button>
+        </div>
+        <!-- Imagen (si existe) -->
+        <div id="nm-img-wrap" style="padding:16px 28px 0;display:none;">
+            <img id="nm-img" src="" alt="" style="width:100%;border-radius:12px;object-fit:cover;max-height:220px;">
+        </div>
+        <!-- Cuerpo -->
+        <div id="nm-contenido" style="padding:20px 28px;color:#cbd5e1;font-size:0.93rem;line-height:1.75;white-space:pre-line;"></div>
+        <!-- Footer oferta -->
+        <div id="nm-oferta-footer" style="display:none;padding:0 28px 24px;">
+            <div style="background:linear-gradient(135deg,#1d4ed8,#7c3aed);border-radius:14px;padding:18px 20px;text-align:center;">
+                <p style="margin:0 0 10px;color:#e0e7ff;font-size:0.9rem;">¿Listo para aprovechar esta oferta?</p>
+                <a href="#servicios" onclick="closeNoticiaModal()" style="display:inline-block;background:#fff;color:#1d4ed8;font-weight:700;padding:10px 24px;border-radius:50px;text-decoration:none;font-size:0.9rem;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🚀 Solicitar Servicio Ahora</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes nmSlideIn {
+    from { opacity:0; transform:translateY(30px) scale(.97); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+#noticia-modal-overlay { display:none; }
+#noticia-modal-overlay.open { display:flex; }
+</style>
+
+<script>
+// ── NOTICIA MODAL ──
+function openNoticiaModal(data) {
+    var overlay = document.getElementById('noticia-modal-overlay');
+    document.getElementById('nm-titulo').textContent    = data.titulo || '';
+    document.getElementById('nm-contenido').textContent = data.contenido || '';
+    document.getElementById('nm-autor').textContent     = data.autor ? ('Por ' + data.autor) : '';
+    document.getElementById('nm-fecha').textContent     = data.fecha || '';
+
+    var imgWrap = document.getElementById('nm-img-wrap');
+    if (data.imagen) {
+        document.getElementById('nm-img').src = data.imagen;
+        imgWrap.style.display = 'block';
+    } else {
+        imgWrap.style.display = 'none';
+    }
+    document.getElementById('nm-oferta-footer').style.display = data.is_oferta ? 'block' : 'none';
+
+    // Directly set display:flex (overrides any inline display:none)
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeNoticiaModal() {
+    document.getElementById('noticia-modal-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// Click on backdrop closes
+document.getElementById('noticia-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeNoticiaModal();
+});
+
+// Escape key closes
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeNoticiaModal();
+});
+
+// ── Event delegation: detect real click (not drag) on noticia cards ──
+(function() {
+    var startX = 0, startY = 0;
+    document.addEventListener('mousedown', function(e) {
+        startX = e.clientX; startY = e.clientY;
+    }, true);
+    document.addEventListener('mouseup', function(e) {
+        var dx = Math.abs(e.clientX - startX);
+        var dy = Math.abs(e.clientY - startY);
+        if (dx > 6 || dy > 6) return; // was a drag, ignore
+        var card = e.target.closest('[data-noticia-json]');
+        if (!card) return;
+        try { openNoticiaModal(JSON.parse(card.dataset.noticiaJson)); } catch(err) { console.error(err); }
+    }, true);
+})();
+</script>
 
 <!-- ═══════════════════════════════════════════════════════════
      NUESTROS CLIENTES / REFERENCIAS (Infinite Carousel)

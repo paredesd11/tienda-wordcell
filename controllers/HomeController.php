@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../core/NotificationHelper.php';
+
 class HomeController extends Controller {
     private $db;
 
@@ -24,16 +26,53 @@ class HomeController extends Controller {
         $descripcion = $_POST['descripcion_problema'] ?? '';
         $prioridad = $_POST['prioridad'] ?? 'Media';
         $fecha_fin = $_POST['fecha_fin'] ?? null;
-        $precio = $_POST['precio_estimado'] ?? 0;
+        $precio = (float)($_POST['precio_estimado'] ?? 0);
+        $oferta_id = !empty($_POST['oferta_servicio_id']) ? (int)$_POST['oferta_servicio_id'] : null;
+
+        // Validar y auditar la oferta si fue enviada
+        $precio_base = null;
+        $descuento_porcentaje_guardado = null;
+        $nombre_oferta_guardado = null;
+
+        if ($oferta_id) {
+            try {
+                $oferta = $this->db->prepare("SELECT nombre, descuento_porcentaje FROM ofertas_servicios WHERE id = ? AND activa = 1 AND fecha_inicio <= CURDATE() AND fecha_fin >= CURDATE()");
+                $oferta->execute([$oferta_id]);
+                $ofertaData = $oferta->fetch(PDO::FETCH_ASSOC);
+
+                if ($ofertaData) {
+                    $desc_pct = (float)$ofertaData['descuento_porcentaje'];
+                    // El precio que llega ya fue descontado. Recomputamos el base.
+                    // precio_final = base * (1 - desc/100) => base = precio_final / (1 - desc/100)
+                    $precio_base = round($precio / (1 - $desc_pct / 100), 2);
+                    $descuento_porcentaje_guardado = $desc_pct;
+                    $nombre_oferta_guardado = $ofertaData['nombre'];
+                }
+            } catch (Exception $e) {}
+        }
+
+        $tipo_entrega = $_POST['tipo_entrega'] ?? 'Entrega fisica';
+        $ubicacion_domicilio = !empty($_POST['ubicacion_domicilio']) ? $_POST['ubicacion_domicilio'] : null;
+        $fecha_domicilio = !empty($_POST['fecha_domicilio']) ? $_POST['fecha_domicilio'] : null;
+        $hora_domicilio = !empty($_POST['hora_domicilio']) ? $_POST['hora_domicilio'] : null;
+        $sucursal_local = !empty($_POST['sucursal_local']) ? $_POST['sucursal_local'] : null;
+        $metodo_envio = !empty($_POST['metodo_envio']) ? $_POST['metodo_envio'] : null;
+        $fecha_local = !empty($_POST['fecha_local']) ? $_POST['fecha_local'] : null;
+        $hora_local = !empty($_POST['hora_local']) ? $_POST['hora_local'] : null;
 
         try {
-            $stmt = $this->db->prepare("INSERT INTO servicio_tecnico (usuario_id, dispositivo, descripcion_problema, prioridad, fecha_fin, precio_estimado) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$usuario_id, $dispositivo, $descripcion, $prioridad, $fecha_fin, $precio]);
+            $stmt = $this->db->prepare("INSERT INTO servicio_tecnico (usuario_id, dispositivo, descripcion_problema, prioridad, fecha_fin, precio_estimado, precio_base, descuento_porcentaje, nombre_oferta, tipo_entrega, ubicacion_domicilio, fecha_domicilio, hora_domicilio, sucursal_local, metodo_envio, fecha_local, hora_local) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$usuario_id, $dispositivo, $descripcion, $prioridad, $fecha_fin, $precio, $precio_base, $descuento_porcentaje_guardado, $nombre_oferta_guardado, $tipo_entrega, $ubicacion_domicilio, $fecha_domicilio, $hora_domicilio, $sucursal_local, $metodo_envio, $fecha_local, $hora_local]);
             
             // Notificar a Admins via WhatsApp
             $this->notificarAdminsWhatsApp($dispositivo, $prioridad, $precio, $descripcion, $fecha_fin, $_POST['fecha_inicio'] ?? '');
 
-            echo json_encode(['success' => true]);
+            // Notificar email de pendientes
+            NotificationHelper::sendPendingNotification($this->db);
+            
+            $id = $this->db->lastInsertId();
+
+            echo json_encode(['success' => true, 'id' => $id]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -86,9 +125,59 @@ class HomeController extends Controller {
             $productos = $this->db->query("SELECT * FROM productos WHERE estado = 1 ORDER BY id DESC LIMIT 8")->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) { $productos = []; }
 
-        // Noticias
+        // Noticias — filtradas según elegibilidad de oferta vinculada
         try {
-            $noticias = $this->db->query("SELECT * FROM noticias ORDER BY id DESC LIMIT 6")->fetchAll(PDO::FETCH_ASSOC);
+            // Primero resolvemos si el usuario ya hizo alguna solicitud de servicio
+            $userId = $_SESSION['user_id'] ?? null;
+            $yaHizoSolicitud = false;
+            if ($userId) {
+                $countServ = $this->db->query("SELECT COUNT(*) FROM servicio_tecnico WHERE usuario_id = $userId")->fetchColumn();
+                $yaHizoSolicitud = ($countServ > 0);
+            }
+
+            $todasNoticias = $this->db->query("
+                SELECT n.*, os.condicion AS oferta_condicion, os.activa AS oferta_activa,
+                       os.fecha_fin AS oferta_fecha_fin
+                FROM noticias n
+                LEFT JOIN ofertas_servicios os ON n.oferta_servicio_id = os.id
+                ORDER BY n.id DESC LIMIT 10
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            $noticias = [];
+            foreach ($todasNoticias as $noticia) {
+                // Noticia con fecha_fin propia vencida: no mostrar (aplica a ofertas de producto)
+                if (!empty($noticia['fecha_fin']) && strtotime($noticia['fecha_fin']) < strtotime(date('Y-m-d'))) {
+                    continue;
+                }
+
+                // Sin oferta de servicio vinculada: visible para todos
+                if (empty($noticia['oferta_servicio_id'])) {
+                    $noticias[] = $noticia;
+                    continue;
+                }
+
+                // Oferta servicio expirada: no mostrar
+                if (!empty($noticia['oferta_fecha_fin']) && strtotime($noticia['oferta_fecha_fin']) < strtotime(date('Y-m-d'))) {
+                    continue;
+                }
+
+                // Oferta inactiva: no mostrar
+                if (isset($noticia['oferta_activa']) && !$noticia['oferta_activa']) {
+                    continue;
+                }
+
+                // Condición PRIMERA_VEZ: solo para usuarios que nunca han hecho solicitud
+                if ($noticia['oferta_condicion'] === 'PRIMERA_VEZ') {
+                    if ($userId && !$yaHizoSolicitud) {
+                        $noticias[] = $noticia;
+                    }
+                    continue;
+                }
+
+                // Condición TODOS: visible para cualquiera
+                $noticias[] = $noticia;
+            }
+            $noticias = array_slice($noticias, 0, 6);
         } catch (Exception $e) { $noticias = []; }
 
         // Referencias (Nuestros Clientes)
@@ -106,7 +195,7 @@ class HomeController extends Controller {
             $redesSociales = $this->db->query("SELECT * FROM redes_sociales ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) { $redesSociales = []; }
 
-        // Ofertas Activas
+        // Ofertas Activas (Productos)
         try {
             $ofertas = $this->db->query("
                 SELECT o.*, p.nombre, p.precio, p.imagen_url, c.nombre as categoria_nombre 
@@ -116,6 +205,23 @@ class HomeController extends Controller {
                 WHERE o.fecha_inicio <= NOW() AND o.fecha_fin >= NOW()
             ")->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) { $ofertas = []; }
+
+        // Ofertas Activas (Servicios Técnicos)
+        $ofertasServicios = [];
+        try {
+            $ofertasServicios = $this->db->query("
+                SELECT * FROM ofertas_servicios 
+                WHERE activa = 1 AND fecha_inicio <= CURDATE() AND fecha_fin >= CURDATE()
+            ")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {}
+
+        // ¿Es primera solicitud del usuario?
+        $isFirstRequest = true;
+        if(isset($_SESSION['user_id'])){
+            $uid = $_SESSION['user_id'];
+            $count = $this->db->query("SELECT COUNT(*) FROM servicio_tecnico WHERE usuario_id = $uid")->fetchColumn();
+            if($count > 0) $isFirstRequest = false;
+        }
 
         // Servicios de Mantenimiento
         try {
@@ -128,6 +234,8 @@ class HomeController extends Controller {
         } catch (Exception $e) { $precios_config = []; }
 
         $this->view('home/index', [
+            'ofertasServicios' => $ofertasServicios,
+            'isFirstRequest' => $isFirstRequest,
             'marcas'         => $marcas,
             'productos'      => $productos,
             'noticias'       => $noticias,

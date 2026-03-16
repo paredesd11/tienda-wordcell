@@ -1,3 +1,18 @@
+<?php
+// Obtener count de pendientes globales
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$db_header = (new Database())->getConnection();
+
+// Pedidos pendientes
+$stmtP = $db_header->query("SELECT COUNT(*) FROM pedidos WHERE estado = 'Pendiente'");
+$pendientesOrdersCount = $stmtP->fetchColumn();
+
+// Servicios técnicos pendientes
+$stmtS = $db_header->query("SELECT COUNT(*) FROM servicio_tecnico WHERE estado = 'Pendiente'");
+$pendientesServicesCount = $stmtS->fetchColumn();
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -123,6 +138,11 @@
                         <a href="<?php echo URL_BASE; ?>admin/servicio">
                             <span class="nav-icon">
                                 <i class="fas fa-tools"></i>
+                                <?php if($pendientesServicesCount > 0): ?>
+                                    <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; top: 10px; margin-left: -5px;">
+                                        <?php echo $pendientesServicesCount; ?>
+                                    </span>
+                                <?php endif; ?>
                             </span>
                             Solicitar Servicio
                         </a>
@@ -139,6 +159,11 @@
                         <a href="<?php echo URL_BASE; ?>admin/pedidos">
                             <span class="nav-icon">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+                                <?php if($pendientesOrdersCount > 0): ?>
+                                    <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; top: 10px; margin-left: -5px;">
+                                        <?php echo $pendientesOrdersCount; ?>
+                                    </span>
+                                <?php endif; ?>
                             </span>
                             Pedidos
                         </a>

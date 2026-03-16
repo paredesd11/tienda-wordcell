@@ -101,8 +101,11 @@
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.5rem; margin-top: 0.5rem;">
                                     <span style="color: #94a3b8; font-size: 0.85rem;"><i class="fas fa-tag"></i> Est.: $<?php echo number_format($rep['precio_estimado'], 2); ?></span>
-                                    <button class="btn-sm" style="background:none; border:none; color: #3b82f6; cursor: pointer; font-size: 0.85rem;" 
-                                            onclick="showCustomAlert('Problema: <?php echo addslashes($rep['descripcion_problema']); ?>')">Ver detalles</button>
+                                    <div style="display:flex; align-items:center; gap: 15px;">
+                                        <a href="<?php echo URL_BASE; ?>user/servicioPdf/<?php echo $rep['id']; ?>" target="_blank" title="Descargar Comprobante PDF" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-decoration: none; transition: all 0.2s ease;"><i class="fas fa-file-pdf" style="margin-right: 4px;"></i> Comprobante PDF</a>
+                                        <button class="btn-sm" style="background:none; border:none; color: #3b82f6; cursor: pointer; font-size: 0.85rem;" 
+                                                onclick="showCustomAlert('Problema: <?php echo addslashes($rep['descripcion_problema']); ?>')">Ver detalles</button>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

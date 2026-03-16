@@ -49,3 +49,78 @@ $marcasCount  = $marcasCount  ?? 0;
         <a href="<?php echo URL_BASE; ?>admin/pedidos"         class="btn btn-outline">Ver Pedidos</a>
     </div>
 </div>
+
+<!-- Pending Orders List -->
+<div class="admin-card mt-4">
+    <div class="admin-card-title text-danger">
+        <i class="fas fa-exclamation-circle"></i> Pedidos Pendientes
+    </div>
+    <?php if(!empty($pendingOrders)): ?>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach($pendingOrders as $po): ?>
+                <tr>
+                    <td>#<?php echo $po['id']; ?></td>
+                    <td><?php echo htmlspecialchars($po['nombre'] . ' ' . $po['apellido']); ?></td>
+                    <td>$<?php echo number_format($po['total'], 2); ?></td>
+                    <td><?php echo date('d/m/Y H:i', strtotime($po['fecha_pedido'])); ?></td>
+                    <td>
+                        <a href="<?php echo URL_BASE; ?>admin/pedidos" class="btn btn-sm btn-outline" title="Ir a Pedidos"><i class="fas fa-eye"></i> Ver</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+        <p class="text-muted">No tienes pedidos pendientes en este momento.</p>
+    <?php endif; ?>
+</div>
+
+<!-- Pending Services List -->
+<div class="admin-card mt-4">
+    <div class="admin-card-title text-warning">
+        <i class="fas fa-tools"></i> Servicios Técnicos Pendientes
+    </div>
+    <?php if(!empty($pendingServices)): ?>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Dispositivo</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach($pendingServices as $ps): ?>
+                <tr>
+                    <td>#<?php echo $ps['id']; ?></td>
+                    <td><?php echo htmlspecialchars($ps['nombre'] . ' ' . $ps['apellido']); ?></td>
+                    <td><?php echo htmlspecialchars($ps['dispositivo']); ?></td>
+                    <td><?php echo date('d/m/Y H:i', strtotime($ps['fecha_solicitud'])); ?></td>
+                    <td>
+                        <a href="<?php echo URL_BASE; ?>admin/servicio" class="btn btn-sm btn-outline" title="Ir a Servicios"><i class="fas fa-eye"></i> Ver</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+        <p class="text-muted">No tienes servicios técnicos pendientes en este momento.</p>
+    <?php endif; ?>
+</div>
+

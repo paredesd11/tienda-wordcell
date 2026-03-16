@@ -1,4 +1,7 @@
 <?php
+use Dompdf\Dompdf;
+use Dompdf\Options;
+
 class UserController extends Controller {
     private $db;
     private $userModel;
@@ -89,6 +92,53 @@ class UserController extends Controller {
             }
             $this->redirect('user/panel');
         }
+    }
+
+    public function servicioPdf($id) {
+        $stmt_check = $this->db->prepare("SELECT id FROM servicio_tecnico WHERE id = ? AND usuario_id = ?");
+        $stmt_check->execute([$id, $_SESSION['user_id']]);
+        if (!$stmt_check->fetch()) {
+            $_SESSION['error_password'] = "Servicio no encontrado o no autorizado.";
+            $this->redirect('user/panel');
+            return;
+        }
+
+        $pdfContent = $this->generarPdfServicio($id);
+        if ($pdfContent) {
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="Comprobante_Servicio_'.$id.'.pdf"');
+            echo $pdfContent;
+        } else {
+            echo "Error al generar PDF o servicio no encontrado.";
+        }
+    }
+
+    private function generarPdfServicio($id) {
+        $stmt = $this->db->prepare("
+            SELECT s.*, u.nombre, u.apellido, u.correo, u.cedula, u.telefono 
+            FROM servicio_tecnico s 
+            JOIN usuarios u ON s.usuario_id = u.id 
+            WHERE s.id = ?
+        ");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) return false;
+
+        require_once dirname(__DIR__) . '/vendor/autoload.php';
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $dompdf = new \Dompdf\Dompdf($options);
+
+        ob_start();
+        include dirname(__DIR__) . '/views/templates/pdf_servicio.php';
+        $html = ob_get_clean();
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        return $dompdf->output();
     }
 
     // Para cambiar correo o contraseña habría que reusar la lógica 2FA (omitido temporalmente para hacerlo "basico y claro")

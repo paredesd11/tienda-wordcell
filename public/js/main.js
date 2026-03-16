@@ -54,14 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let isDown = false;
         let startX;
         let scrollLeft;
+        let wasDragged = false;
 
         marquee.addEventListener('mousedown', (e) => {
             isDown = true;
+            wasDragged = false;
             marquee.classList.add('is-dragging');
             startX = e.pageX - marquee.offsetLeft;
             scrollLeft = marquee.scrollLeft;
-
-            // Pausar animación de los hijos (se hace vía CSS en .is-dragging)
         });
 
         marquee.addEventListener('mouseleave', () => {
@@ -69,16 +69,24 @@ document.addEventListener('DOMContentLoaded', () => {
             marquee.classList.remove('is-dragging');
         });
 
-        marquee.addEventListener('mouseup', () => {
+        marquee.addEventListener('mouseup', (e) => {
             isDown = false;
             marquee.classList.remove('is-dragging');
+            // If the user just clicked (didn't really drag), open the noticia modal
+            if (!wasDragged) {
+                const card = e.target.closest('[data-noticia-json]');
+                if (card) {
+                    try { openNoticiaModal(JSON.parse(card.dataset.noticiaJson)); } catch(err) {}
+                }
+            }
         });
 
         marquee.addEventListener('mousemove', (e) => {
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - marquee.offsetLeft;
-            const walk = (x - startX) * 2; // adjust scroll speed modifier
+            const walk = (x - startX) * 2;
+            if (Math.abs(x - startX) > 5) wasDragged = true;
             marquee.scrollLeft = scrollLeft - walk;
         });
     });

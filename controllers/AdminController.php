@@ -1,4 +1,7 @@
 <?php
+use Dompdf\Dompdf;
+use Dompdf\Options;
+
 class AdminController extends Controller {
     private $db;
 
@@ -30,12 +33,31 @@ class AdminController extends Controller {
         $categoriasCount = $this->db->query("SELECT count(*) FROM categorias")->fetchColumn();
         $marcasCount   = $this->db->query("SELECT count(*) FROM marcas")->fetchColumn();
 
+        // Pendientes para listar
+        $pendingOrders = $this->db->query("
+            SELECT p.id, p.total, p.fecha_pedido, u.nombre, u.apellido 
+            FROM pedidos p
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE p.estado = 'Pendiente'
+            ORDER BY p.fecha_pedido DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $pendingServices = $this->db->query("
+            SELECT s.id, s.dispositivo, s.descripcion_problema, s.fecha_solicitud, u.nombre, u.apellido
+            FROM servicio_tecnico s
+            LEFT JOIN usuarios u ON s.usuario_id = u.id
+            WHERE s.estado = 'Pendiente'
+            ORDER BY s.fecha_solicitud DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
         $this->viewAdmin('admin/dashboard', [
             'usersCount'      => $usersCount,
             'productsCount'   => $productsCount,
             'ordersCount'     => $ordersCount,
             'categoriasCount' => $categoriasCount,
             'marcasCount'     => $marcasCount,
+            'pendingOrders'   => $pendingOrders,
+            'pendingServices' => $pendingServices
         ]);
     }
 
@@ -253,8 +275,66 @@ class AdminController extends Controller {
             LEFT JOIN productos p ON o.producto_id = p.id
             ORDER BY o.id DESC
         ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $ofertas_servicios = $this->db->query("
+            SELECT * FROM ofertas_servicios ORDER BY id DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
         $productos = $this->db->query("SELECT id, nombre FROM productos ORDER BY nombre ASC")->fetchAll(PDO::FETCH_ASSOC);
-        $this->viewAdmin('admin/ofertas/index', ['records' => $records, 'productos' => $productos]);
+        $this->viewAdmin('admin/ofertas/index', [
+            'records' => $records, 
+            'productos' => $productos,
+            'ofertas_servicios' => $ofertas_servicios
+        ]);
+    }
+
+    public function ofertasServiciosCreate() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $nombre = $_POST['nombre'] ?? '';
+            $descuento = $_POST['descuento_porcentaje'] ?? 0;
+            $condicion = $_POST['condicion'] ?? 'TODOS';
+            $fecha_inicio = $_POST['fecha_inicio'] ?? '';
+            $fecha_fin = $_POST['fecha_fin'] ?? '';
+
+            $stmt = $this->db->prepare("INSERT INTO ofertas_servicios (nombre, descuento_porcentaje, condicion, fecha_inicio, fecha_fin) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$nombre, $descuento, $condicion, $fecha_inicio, $fecha_fin]);
+
+            // --- Crear noticia automática atractiva ---
+            try {
+                $condicion_texto = $condicion === 'PRIMERA_VEZ'
+                    ? 'Exclusivo para nuevos clientes que soliciten su primer servicio técnico a través de nuestra página web.'
+                    : 'Aplica para todos nuestros clientes. ¡No pierdas esta oportunidad!';
+
+                $fecha_fin_format = date('d \d\e F \d\e Y', strtotime($fecha_fin));
+
+                $titulo_noticia = "🔥 ¡OFERTA ESPECIAL! -{$descuento}% en Servicio Técnico — {$nombre}";
+
+                $contenido_noticia =
+                    "¡Tenemos una promoción increíble para ti! 🎉\n\n" .
+                    "Aprovecha un DESCUENTO del {$descuento}% en todos nuestros servicios técnicos especializados.\n\n" .
+                    "⚡ ¿Qué cubre esta oferta?\n" .
+                    "Reparación de celulares, laptops, tablets, computadoras de escritorio y mucho más. Nuestro equipo técnico certificado está listo para ayudarte.\n\n" .
+                    "📋 Condición: {$condicion_texto}\n\n" .
+                    "📅 Válida hasta el {$fecha_fin_format}.\n\n" .
+                    "¡Solicita tu servicio ahora mismo desde nuestra página web y obtén tu descuento de forma automática! 🚀";
+
+                $oferta_new_id = $this->db->lastInsertId();
+
+                $noticia_stmt = $this->db->prepare("INSERT INTO noticias (titulo, autor, contenido, tipo_media, oferta_servicio_id, fecha_publicacion) VALUES (?, ?, ?, ?, ?, NOW())");
+                $noticia_stmt->execute([$titulo_noticia, 'WorldCell', $contenido_noticia, null, $oferta_new_id]);
+            } catch (\Exception $e) {
+                // Silencioso si falla la noticia
+            }
+            // --- Fin noticia automática ---
+
+            $this->redirect('admin/ofertas');
+        }
+    }
+
+    public function ofertasServiciosDelete($id) {
+        $stmt = $this->db->prepare("DELETE FROM ofertas_servicios WHERE id = ?");
+        $stmt->execute([$id]);
+        $this->redirect('admin/ofertas');
     }
 
     public function ofertasCreate() {
@@ -265,6 +345,41 @@ class AdminController extends Controller {
             $fecha_fin = $_POST['fecha_fin'] ?? '';
             $stmt = $this->db->prepare("INSERT INTO ofertas (producto_id, descuento_porcentaje, fecha_inicio, fecha_fin) VALUES (?, ?, ?, ?)");
             $stmt->execute([$producto_id, $descuento_porcentaje, $fecha_inicio, $fecha_fin]);
+
+            // --- Crear noticia automática para la oferta de producto ---
+            try {
+                $prod = $this->db->prepare("SELECT p.nombre, p.precio, p.imagen_url, c.nombre AS categoria FROM productos p LEFT JOIN categorias c ON p.categoria_id = c.id WHERE p.id = ?");
+                $prod->execute([$producto_id]);
+                $producto = $prod->fetch(PDO::FETCH_ASSOC);
+
+                if ($producto) {
+                    $nombre_prod    = $producto['nombre'];
+                    $categoria      = $producto['categoria'] ?? 'Tecnología';
+                    $precio_orig    = number_format($producto['precio'], 2);
+                    $precio_desc    = number_format($producto['precio'] * (1 - $descuento_porcentaje / 100), 2);
+                    $fecha_fin_fmt  = date('d \d\e F \d\e Y', strtotime($fecha_fin));
+
+                    $titulo = "🔥 ¡OFERTA! -{$descuento_porcentaje}% en {$nombre_prod}";
+
+                    $contenido =
+                        "¡Aprovecha esta promoción exclusiva! 🎉\n\n" .
+                        "Tenemos el {$nombre_prod} con un increíble {$descuento_porcentaje}% de descuento.\n\n" .
+                        "💰 Precio original: \${$precio_orig}\n" .
+                        "🏷️ Precio con descuento: \${$precio_desc}\n\n" .
+                        "📦 Categoría: {$categoria}\n\n" .
+                        "📅 Oferta válida hasta el {$fecha_fin_fmt}.\n\n" .
+                        "¡No dejes pasar esta oportunidad! Visita nuestra tienda y adquiere el tuyo antes de que se acabe el stock. 🚀";
+
+                    $oferta_prod_id = $this->db->lastInsertId();
+
+                    $n_stmt = $this->db->prepare("INSERT INTO noticias (titulo, autor, contenido, tipo_media, oferta_producto_id, fecha_fin, fecha_publicacion) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+                    $n_stmt->execute([$titulo, 'WorldCell', $contenido, null, $oferta_prod_id, $fecha_fin ?: null]);
+                }
+            } catch (\Exception $e) {
+                // Silencioso si falla la noticia
+            }
+            // --- Fin noticia automática ---
+
             $this->redirect('admin/ofertas');
         } else {
             $this->viewAdmin('admin/ofertas/create');
@@ -371,14 +486,116 @@ public function servicio() {
             $descripcion = $_POST['descripcion_problema'];
             $prioridad = $_POST['prioridad'] ?? 'Media';
             $estado = $_POST['estado'] ?? 'Pendiente';
-            $fecha_fin = $_POST['fecha_fin'] ?? null;
+            $fecha_fin = !empty($_POST['fecha_fin']) ? $_POST['fecha_fin'] : null;
             $precio = $_POST['precio_estimado'] ?? 0;
 
-            $stmt = $this->db->prepare("INSERT INTO servicio_tecnico (usuario_id, dispositivo, descripcion_problema, prioridad, estado, fecha_fin, precio_estimado) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$usuario_id, $dispositivo, $descripcion, $prioridad, $estado, $fecha_fin, $precio]);
+            $tipo_entrega = $_POST['tipo_entrega'] ?? 'Entrega fisica';
+            $ubicacion_domicilio = !empty($_POST['ubicacion_domicilio']) ? $_POST['ubicacion_domicilio'] : null;
+            $fecha_domicilio = !empty($_POST['fecha_domicilio']) ? $_POST['fecha_domicilio'] : null;
+            $hora_domicilio = !empty($_POST['hora_domicilio']) ? $_POST['hora_domicilio'] : null;
+            $sucursal_local = !empty($_POST['sucursal_local']) ? $_POST['sucursal_local'] : null;
+            $metodo_envio = !empty($_POST['metodo_envio']) ? $_POST['metodo_envio'] : null;
+            $fecha_local = !empty($_POST['fecha_local']) ? $_POST['fecha_local'] : null;
+            $hora_local = !empty($_POST['hora_local']) ? $_POST['hora_local'] : null;
+
+            $stmt = $this->db->prepare("INSERT INTO servicio_tecnico (usuario_id, dispositivo, descripcion_problema, prioridad, estado, fecha_fin, precio_estimado, tipo_entrega, ubicacion_domicilio, fecha_domicilio, hora_domicilio, sucursal_local, metodo_envio, fecha_local, hora_local) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$usuario_id, $dispositivo, $descripcion, $prioridad, $estado, $fecha_fin, $precio, $tipo_entrega, $ubicacion_domicilio, $fecha_domicilio, $hora_domicilio, $sucursal_local, $metodo_envio, $fecha_local, $hora_local]);
+            
+            $id = $this->db->lastInsertId();
+            $this->enviarComprobanteServicio($id);
+            $_SESSION['download_pdf_id'] = $id;
+
             header('Location: ' . URL_BASE . 'admin/servicio');
         } else {
             $this->viewAdmin('admin/servicio/create');
+        }
+    }
+
+    public function servicioPdf($id) {
+        $pdfContent = $this->generarPdfServicio($id);
+        if ($pdfContent) {
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="Comprobante_Servicio_'.$id.'.pdf"');
+            echo $pdfContent;
+        } else {
+            echo "Error al generar PDF o servicio no encontrado.";
+        }
+    }
+
+    private function generarPdfServicio($id) {
+        $stmt = $this->db->prepare("
+            SELECT s.*, u.nombre, u.apellido, u.correo, u.cedula, u.telefono 
+            FROM servicio_tecnico s 
+            JOIN usuarios u ON s.usuario_id = u.id 
+            WHERE s.id = ?
+        ");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) return false;
+
+        require_once dirname(__DIR__) . '/vendor/autoload.php';
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $dompdf = new \Dompdf\Dompdf($options);
+
+        ob_start();
+        include dirname(__DIR__) . '/views/templates/pdf_servicio.php';
+        $html = ob_get_clean();
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        return $dompdf->output();
+    }
+
+    private function enviarComprobanteServicio($id) {
+        $stmt = $this->db->prepare("
+            SELECT s.*, u.correo, u.nombre, u.apellido 
+            FROM servicio_tecnico s 
+            JOIN usuarios u ON s.usuario_id = u.id 
+            WHERE s.id = ?
+        ");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$row || empty($row['correo'])) return;
+
+        $pdfContent = $this->generarPdfServicio($id);
+        if (!$pdfContent) return;
+
+        $correo_cliente = $row['correo'];
+        $nombre_cliente = $row['nombre'].' '.$row['apellido'];
+        $asunto = "Comprobante de Servicio Tecnico #" . $id . " - " . APP_NAME;
+        $mensajeHTML = "Hola " . $nombre_cliente . ",<br><br>Adjuntamos el comprobante de su solicitud de servicio tecnico.<br><br>Estado: " . $row['estado'] . "<br><br>Gracias por confiar en " . APP_NAME . ".";
+
+        $phpmailerPath = dirname(__DIR__) . '/vendor/autoload.php';
+        if (file_exists($phpmailerPath)) {
+            require_once $phpmailerPath;
+            try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host       = SMTP_HOST;
+                $mail->SMTPAuth   = true;
+                $mail->Username   = SMTP_USER;
+                $mail->Password   = SMTP_PASS;
+                $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = SMTP_PORT;
+
+                $mail->setFrom(SMTP_USER, APP_NAME);
+                $mail->addAddress($correo_cliente, $nombre_cliente);
+
+                $mail->isHTML(true);
+                $mail->Subject = $asunto;
+                $mail->Body    = $mensajeHTML;
+
+                $mail->addStringAttachment($pdfContent, 'Comprobante_Servicio_'.$id.'.pdf');
+
+                $mail->send();
+            } catch (Exception $e) {
+                error_log("PHPMailer Error en Comprobante: " . $e->getMessage());
+            }
         }
     }
 
@@ -405,10 +622,11 @@ public function servicio() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'];
             $valor = $_POST['valor'];
+            $descripcion = $_POST['descripcion'] ?? '';
 
             if ($id) {
-                $stmt = $this->db->prepare("UPDATE configuracion_precios_servicio SET valor = ? WHERE id = ?");
-                $stmt->execute([$valor, $id]);
+                $stmt = $this->db->prepare("UPDATE configuracion_precios_servicio SET valor = ?, descripcion = ? WHERE id = ?");
+                $stmt->execute([$valor, $descripcion, $id]);
             }
         }
         header('Location: ' . URL_BASE . 'admin/servicio');
@@ -440,8 +658,19 @@ public function servicio() {
                 $fecha_entregado = date('Y-m-d H:i:s');
             }
 
-            $stmt = $this->db->prepare("UPDATE servicio_tecnico SET estado = ?, precio_estimado = ?, fecha_entregado = IFNULL(?, fecha_entregado) WHERE id = ?");
-            if ($stmt->execute([$estado_nuevo, $precio_nuevo, $fecha_entregado, $id])) {
+            // Si el servicio tiene un descuento vigente, el admin ingresa el precio BASE
+            // y nosotros calculamos el precio final con el descuento
+            $precio_base_guardado = null;
+            $precio_final = (float)$precio_nuevo;
+
+            if (!empty($old['descuento_porcentaje']) && (float)$old['descuento_porcentaje'] > 0) {
+                $precio_base_guardado = (float)$precio_nuevo;
+                $precio_final = round($precio_base_guardado * (1 - (float)$old['descuento_porcentaje'] / 100), 2);
+            }
+
+            $stmt = $this->db->prepare("UPDATE servicio_tecnico SET estado = ?, precio_estimado = ?, precio_base = COALESCE(?, precio_base), fecha_entregado = IFNULL(?, fecha_entregado) WHERE id = ?");
+            if ($stmt->execute([$estado_nuevo, $precio_final, $precio_base_guardado, $fecha_entregado, $id])) {
+                $precio_nuevo = $precio_final; // Use final price for messaging
                 
                 // Formatear Fecha Entrega si existe
                 $fecha_fin_format = !empty($old['fecha_fin']) ? date('d/m/Y - H:i', strtotime($old['fecha_fin'])) : 'No definida';

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../core/NotificationHelper.php';
+
 class CheckoutController extends Controller {
     private $db;
 
@@ -59,6 +61,8 @@ class CheckoutController extends Controller {
                     // Bajar stock local
                     $stmtStock = $this->db->prepare("UPDATE productos SET stock = stock - 1 WHERE id = ?");
                     $stmtStock->execute([$producto_id]);
+                } else if ($estado == 'Pendiente') {
+                    NotificationHelper::sendPendingNotification($this->db);
                 }
 
                 $this->db->commit();
@@ -203,6 +207,10 @@ class CheckoutController extends Controller {
                 
                 // Vaciar el carrito tras crearlo
                 $_SESSION['carrito'] = [];
+
+                if ($estado == 'Pendiente') {
+                    NotificationHelper::sendPendingNotification($this->db);
+                }
 
                 $this->view('checkout/success', ['pedido_id' => $pedido_id, 'estado' => $estado, 'metodo' => $metodo['tipo']]);
 
