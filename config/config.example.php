@@ -19,20 +19,25 @@ if ($isLocal) {
 
 } else {
     // ── ENTORNO PRODUCCIÓN (InfinityFree) ─────────
+    // ⚠️ CAMBIAR: Datos de la base de datos de producción proporcionados por el cliente o el hosting del cliente.
     define('DB_HOST', 'sql213.infinityfree.com');
     define('DB_USER', 'if0_41339156');
     define('DB_PASS', 'Danny110404');
     define('DB_NAME', 'if0_41339156_tienda_mvc');
-    define('URL_BASE', 'https://wordcell-ec.wuaze.com/'); // AÑADIDO HTTPS:// Y LA BARRA FINAL /
+    // ⚠️ CAMBIAR: Dominio oficial del cliente
+    define('URL_BASE', 'http://wordcell-ec.wuaze.com/');
 }
 
 // ── Configuración general ─────────────────────────
+// ⚠️ CAMBIAR: Nombre oficial de la tienda/empresa del cliente
 define('APP_NAME', 'WordCell');
 
 // ── SMTP (Gmail) ──────────────────────────────────
+// ⚠️ CAMBIAR: Estos datos son para las alertas, verificación en 2 pasos y contacto. 
+// Debes colocar el correo oficial del cliente y su contraseña de aplicación (App Password).
 define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_USER', 'paredesd1104@gmail.com');
-define('SMTP_PASS', 'nnlr dorv icad udbw');
+define('SMTP_USER', 'paredesd1104@gmail.com'); // Correo del cliente
+define('SMTP_PASS', 'nnlr dorv icad udbw');    // Contraseña de aplicación del cliente
 define('SMTP_PORT', 587);
 
 // ── Zona Horaria ──────────────────────────────────
